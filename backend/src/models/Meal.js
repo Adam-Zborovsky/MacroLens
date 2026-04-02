@@ -39,6 +39,7 @@ const DetectedItemSchema = new Schema(
     name:           { type: String, required: true },
     usdaSearchTerm: { type: String, required: true },
     usdaFoodId:     { type: String, default: null },
+    boundingBox2D:  { type: [Number], default: [] },
 
     // Volumetric estimation
     massGrams: {

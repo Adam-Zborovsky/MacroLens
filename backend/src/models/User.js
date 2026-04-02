@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
 const MacroTargetSchema = new Schema(
@@ -13,20 +14,21 @@ const MacroTargetSchema = new Schema(
 
 const UserSchema = new Schema(
   {
-    // Firebase UID — primary lookup key (string, not ObjectId)
-    firebaseUid: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-
     email: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
       trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    firebaseUid: {
+      type: String,
+      default: null,
+      index: true,
     },
 
     displayName: { type: String, default: null },
@@ -45,21 +47,17 @@ const UserSchema = new Schema(
         type: Number,
         enum: [1.2, 1.375, 1.55, 1.725, 1.9],
         default: 1.55,
-        comment: 'Sedentary=1.2, Light=1.375, Moderate=1.55, Active=1.725, VeryActive=1.9',
       },
     },
 
-    // Current training phase drives target macro calculations
     currentPhase: {
       type: String,
       enum: ['bulk', 'cut', 'maintain'],
       default: 'maintain',
     },
 
-    // Computed targets — updated when biometrics or phase changes
     dailyTargets: { type: MacroTargetSchema, default: null },
 
-    // Custom macro split overrides (0–1.0, must sum to ~1.0)
     macroSplit: {
       proteinRatio:       { type: Number, default: 0.3, min: 0, max: 1 },
       carbohydratesRatio: { type: Number, default: 0.4, min: 0, max: 1 },
@@ -73,9 +71,8 @@ const UserSchema = new Schema(
       googleFitEnabled:    { type: Boolean, default: false },
     },
 
-    // Notification schedule (meal-time reminders)
     reminderSchedule: {
-      breakfastTime: { type: String, default: null, comment: 'HH:MM local time' },
+      breakfastTime: { type: String, default: null },
       lunchTime:     { type: String, default: null },
       dinnerTime:    { type: String, default: null },
     },
@@ -87,5 +84,22 @@ const UserSchema = new Schema(
     collection: 'users',
   }
 );
+
+// Hash password before saving
+UserSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Method to compare password
+UserSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('User', UserSchema);

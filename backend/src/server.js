@@ -3,10 +3,12 @@ const express = require('express');
 const cors    = require('cors');
 const helmet  = require('helmet');
 const morgan  = require('morgan');
+const path    = require('path');
 
 const { connectDB }    = require('./config/db');
 const { errorHandler } = require('./middleware/errorHandler');
 
+const authRouter     = require('./routes/auth');
 const capturesRouter = require('./routes/captures');
 const mealsRouter    = require('./routes/meals');
 const usersRouter    = require('./routes/users');
@@ -21,12 +23,16 @@ app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*' }));
 app.use(express.json({ limit: '25mb' })); // Accommodates base64 image payloads
 app.use(morgan('dev'));
 
+// Serve static uploads (Docker Volume)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ONLINE', service: 'MacroLens API', timestamp: new Date().toISOString() });
 });
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
+app.use('/api/v1/auth',              authRouter);
 app.use('/api/v1/captures',          capturesRouter);
 app.use('/api/v1/meals',             mealsRouter);
 app.use('/api/v1/users',             usersRouter);
@@ -50,7 +56,6 @@ async function boot() {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`[API] MacroLens API running on port ${PORT}`);
-    console.log(`[API] Gemini model: gemini-2.5-flash`);
   });
 }
 

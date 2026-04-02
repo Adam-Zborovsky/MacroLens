@@ -1,92 +1,70 @@
 const express = require('express');
 const { z } = require('zod');
+const path = require('path');
+const fs = require('fs').promises;
 const Capture = require('../models/Capture');
 const Meal    = require('../models/Meal');
 const { AnalyzerService } = require('../services/analyzer');
-const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
+router.use(verifyToken);
+
 const analyzer = new AnalyzerService();
 
-// All capture routes require authentication
-router.use(verifyFirebaseToken);
-
-// ─── Zod schema for capture submission ───────────────────────────────────────
-
-const CaptureSubmitSchema = z.object({
-  // Base64-encoded image data (mobile sends this directly)
-  imageBase64: z.string().min(100, 'ERR_IMAGE_EMPTY: No image data provided'),
-  mimeType: z
-    .enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
-    .default('image/jpeg'),
-  sessionGroupId: z.string().uuid().optional(),
+const CaptureCreateSchema = z.object({
+  imageBase64: z.string(),
+  mimeType:    z.string().optional(),
+  sessionGroupId: z.string().optional(),
 });
 
 // ─── POST /api/v1/captures ───────────────────────────────────────────────────
-// Accepts a base64 image, creates a Capture record, triggers Gemini analysis,
-// and returns a completed Case File (Meal). Optimistic UI: responds with
-// capture.analysisStatus='analyzing' immediately, then streams/updates.
 
 router.post('/', async (req, res, next) => {
   try {
-    const body = CaptureSubmitSchema.parse(req.body);
     const userId = req.userId;
+    const { imageBase64, mimeType, sessionGroupId } = CaptureCreateSchema.parse(req.body);
 
-    // 1. Create Capture record in 'analyzing' state — Optimistic UI
+    // 1. Create directory for Docker volume if it doesn't exist
+    const uploadDir = path.join(__dirname, '../../uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    // 2. Generate unique filename and save to disk
+    const fileName = `specimen_${Date.now()}_${userId.toString().substring(0, 5)}.jpg`;
+    const filePath = path.join(uploadDir, fileName);
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    await fs.writeFile(filePath, imageBuffer);
+
+    // 3. Create database record
     const capture = await Capture.create({
       userId,
-      imageUrl:       `pending:base64`, // Replace with pre-signed URL logic
-      imageMimeType:  body.mimeType,
+      mimeType: mimeType || 'image/jpeg',
       analysisStatus: 'analyzing',
-      analysisStartedAt: new Date(),
-      sessionGroupId: body.sessionGroupId ?? null,
+      sessionGroupId,
+      localPath: `uploads/${fileName}`,
     });
 
-    // 2. Run Gemini analysis
-    let geminiData;
+    // 4. Run AI analysis
     try {
-      geminiData = await analyzer.analyzeCapture(body.imageBase64, body.mimeType);
+      const geminiData = await analyzer.analyzeCapture(imageBase64, mimeType);
+      
+      const mealData = AnalyzerService.mapToMealSchema(geminiData, userId, capture._id);
+      const meal = await Meal.create(mealData);
+
+      capture.analysisStatus = 'completed';
+      capture.resultMealId = meal._id;
+      await capture.save();
+
+      res.status(201).json({ capture, caseFile: meal });
     } catch (analysisErr) {
-      await Capture.findByIdAndUpdate(capture._id, {
-        analysisStatus: 'failed',
-        analysisCompletedAt: new Date(),
-        'analysisError.code':    analysisErr.code || 'ERR_UNKNOWN',
-        'analysisError.message': analysisErr.message,
-      });
-      return next(analysisErr);
+      capture.analysisStatus = 'failed';
+      capture.analysisError = {
+        code: analysisErr.code || 'ERR_ANALYSIS_FAILED',
+        message: analysisErr.message,
+      };
+      await capture.save();
+      throw analysisErr;
     }
-
-    // 3. Map and persist the Case File
-    const mealData = AnalyzerService.mapToMealSchema(geminiData, userId, capture._id);
-    const meal = await Meal.create(mealData);
-
-    // 4. Finalize Capture record
-    await Capture.findByIdAndUpdate(capture._id, {
-      analysisStatus:       'completed',
-      resultMealId:         meal._id,
-      analysisCompletedAt:  new Date(),
-      analysisLatencyMs:    geminiData.analysisLatencyMs,
-      geminiRawResponse:    geminiData,
-    });
-
-    res.status(201).json({
-      captureId:       capture._id,
-      analysisLatencyMs: geminiData.analysisLatencyMs,
-      caseFile: meal,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ─── GET /api/v1/captures/:id ─────────────────────────────────────────────────
-router.get('/:id', async (req, res, next) => {
-  try {
-    const capture = await Capture.findById(req.params.id).populate('resultMealId');
-    if (!capture) {
-      return res.status(404).json({ error: { code: 'ERR_CAPTURE_NOT_FOUND', message: 'Capture record not found.' } });
-    }
-    res.json(capture);
   } catch (err) {
     next(err);
   }

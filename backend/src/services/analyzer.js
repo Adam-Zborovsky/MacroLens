@@ -27,6 +27,7 @@ Required JSON schema (strict — no additional fields):
       "item_id": "<uuid>",
       "name": "<string>",
       "usda_search_term": "<string>",
+      "bounding_box_2d": [<ymin>, <xmin>, <ymax>, <xmax>],
       "estimated_grams": <number>,
       "confidence": "high|medium|low",
       "state": "cooked|raw|processed|unknown",
@@ -54,6 +55,11 @@ Required JSON schema (strict — no additional fields):
   "meal_totals": {
     "calories": <number>, "protein_g": <number>,
     "carbohydrates_g": <number>, "fat_g": <number>
+  },
+  "volumetric_calibration": {
+    "plate_diameter_cm": <number|null>,
+    "anchor_object": "plate|fork|hand|spoon|knife|other|null",
+    "method": "plate_size|cutlery|hand|barcode|manual|unknown"
   }
 }`;
 
@@ -119,6 +125,7 @@ class AnalyzerService {
       itemId: item.item_id || crypto.randomUUID(),
       name:            item.name,
       usdaSearchTerm:  item.usda_search_term,
+      boundingBox2D:   item.bounding_box_2d || [],
       massGrams:       item.estimated_grams,
       compositionConfidence: item.confidence,
       preparationState:  item.state,
@@ -152,6 +159,7 @@ class AnalyzerService {
     }));
 
     const totals = geminiData.meal_totals;
+    const calibration = geminiData.volumetric_calibration || {};
 
     return {
       userId,
@@ -165,6 +173,11 @@ class AnalyzerService {
         carbohydratesGrams: totals.carbohydrates_g,
         fatGrams:           totals.fat_g,
         fiberGrams:         0,
+      },
+      volumetricAnchors: {
+        estimatedPlateDiameterCm: calibration.plate_diameter_cm,
+        anchorObjectDetected:     calibration.anchor_object,
+        calibrationMethod:        calibration.method,
       },
       entryMethod: 'vision_capture',
     };

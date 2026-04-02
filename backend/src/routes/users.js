@@ -1,10 +1,10 @@
 const express = require('express');
 const { z } = require('zod');
 const User = require('../models/User');
-const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(verifyFirebaseToken);
+router.use(verifyToken);
 
 // ─── TDEE calculation (Mifflin-St Jeor) ──────────────────────────────────────
 
@@ -44,7 +44,7 @@ const MetricsPatchSchema = z.object({
       heightCentimeters:  z.number().min(0).optional(),
       ageYears:           z.number().min(0).optional(),
       biologicalSex:      z.enum(['male', 'female', 'prefer_not_to_say']).optional(),
-      activityMultiplier: z.enum([1.2, 1.375, 1.55, 1.725, 1.9]).optional(),
+      activityMultiplier: z.number().optional(),
     })
     .optional(),
   currentPhase: z.enum(['bulk', 'cut', 'maintain']).optional(),
@@ -62,11 +62,9 @@ const MetricsPatchSchema = z.object({
 router.get('/me', async (req, res, next) => {
   try {
     const userId = req.userId;
-    // Firebase UID is a string, not an ObjectId — use findOne with a string field or upsert
-    let user = await User.findOne({ firebaseUid: userId });
+    const user = await User.findById(userId).select('-password');
     if (!user) {
-      // Auto-provision user on first login
-      user = await User.create({ firebaseUid: userId, email: req.user?.email ?? '' });
+      return res.status(404).json({ error: { code: 'ERR_USER_NOT_FOUND', message: 'User not found.' } });
     }
     res.json(user);
   } catch (err) {
@@ -82,7 +80,7 @@ router.patch('/metrics', async (req, res, next) => {
     const userId = req.userId;
     const body = MetricsPatchSchema.parse(req.body);
 
-    const user = await User.findOne({ firebaseUid: userId });
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: { code: 'ERR_USER_NOT_FOUND', message: 'User profile not found.' } });
     }
