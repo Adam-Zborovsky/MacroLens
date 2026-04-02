@@ -1,0 +1,57 @@
+name: macro_lens_mobile
+description: "MacroLens — Vision-first nutrition laboratory for high-performance individuals."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Camera & image
+  camera: ^0.11.0+2
+  image_picker: ^1.1.2
+
+  # HTTP & state
+  http: ^1.2.2
+  provider: ^6.1.2
+
+  # Firebase & auth
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  google_sign_in: ^6.2.1
+
+  # Haptics
+  flutter_haptic_feedback: ^1.0.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Storage
+  shared_preferences: ^2.3.3
+  flutter_secure_storage: ^9.2.4
+
+  # Barcode scanner
+  barcode_scan2: ^4.3.2
+
+  # UI utilities
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  percent_indicator: ^4.2.4
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
