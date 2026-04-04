@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  macrolens-db:
+    image: mongo:7
+    container_name: macrolens-db
+    restart: always
+    volumes:
+      - macrolens-db-data:/data/db
+    networks:
+      - macrolens-net
+
+  macrolens-backend:
+    build: ./backend
+    container_name: macrolens-backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    volumes:
+      - macrolens-uploads:/app/uploads
+    depends_on:
+      - macrolens-db
+    networks:
+      - macrolens-net
+
+  macrolens-web:
+    build: ./mobile
+    container_name: macrolens-web
+    restart: always
+    depends_on:
+      - macrolens-backend
+    networks:
+      - macrolens-net
+      - adam
+
+networks:
+  macrolens-net:
+    driver: bridge
+  adam:
+    external: true
+
+volumes:
+  macrolens-db-data:
+  macrolens-uploads:

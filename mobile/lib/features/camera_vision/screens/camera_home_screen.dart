@@ -70,7 +70,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           }
         }
       }
-      if (deletedCount > 0) debugPrint("SHREDDED_$deletedCount_OLD_SPECIMENS");
+      if (deletedCount > 0) debugPrint("SHREDDED_${deletedCount}_OLD_SPECIMENS");
     } catch (e) {
       debugPrint("CLEANUP_ERR: $e");
     }

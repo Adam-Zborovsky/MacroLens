@@ -4,16 +4,16 @@ const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
 async function connectDB(retries = MAX_RETRIES) {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGO_URI;
   if (!uri) {
-    throw new Error('MONGODB_URI is not defined in environment variables');
+    throw new Error('MONGO_URI is not defined in environment variables');
   }
 
   try {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
     });
-    console.log('[DB] MongoDB connected — Case File store online');
+    console.log('[DB] MongoDB connected — MacroLens store online');
   } catch (err) {
     if (retries > 0) {
       console.warn(`[DB] Connection failed, retrying in ${RETRY_DELAY_MS}ms (${retries} attempts left)...`);
