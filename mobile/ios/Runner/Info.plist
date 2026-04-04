@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Macro Lens Mobile</string>
+	<string>MacroLens</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>macro_lens_mobile</string>
+	<string>MacroLens</string>
+    <key>NSCameraUsageDescription</key>
+    <string>MacroLens requires camera access to identify food items and scan barcodes.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>MacroLens requires microphone access for video capture features.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

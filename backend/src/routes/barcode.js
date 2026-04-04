@@ -1,9 +1,9 @@
 const express = require('express');
 const https = require('https');
-const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(verifyFirebaseToken);
+router.use(verifyToken);
 
 /**
  * Fetch nutrition data from Open Food Facts by barcode.

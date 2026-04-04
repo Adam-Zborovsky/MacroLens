@@ -131,6 +131,24 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getNutritionByBarcode(String barcode) async {
+    final url = Uri.parse('$baseUrl/barcode/$barcode');
+    
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $_token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final data = jsonDecode(response.body);
+      throw Exception(data['error']?['message'] ?? 'Failed to fetch barcode data');
+    }
+  }
+
   Future<void> updateGoals(Map<String, dynamic> goals) async {
     final url = Uri.parse('$baseUrl/users/metrics');
     

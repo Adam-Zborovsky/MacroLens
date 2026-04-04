@@ -92,9 +92,10 @@ const DetectedItemSchema = new Schema(
 
 const MealSchema = new Schema(
   {
-    // Ownership — Firebase UID string (not ObjectId)
+    // Ownership — Local MongoDB User
     userId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
       index: true,
     },

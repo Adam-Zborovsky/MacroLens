@@ -25,11 +25,6 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
-    firebaseUid: {
-      type: String,
-      default: null,
-      index: true,
-    },
 
     displayName: { type: String, default: null },
 

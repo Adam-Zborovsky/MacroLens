@@ -1,4 +1,4 @@
-package com.example.macro_lens_mobile
+package com.macrolens.app
 
 import io.flutter.embedding.android.FlutterActivity
 
