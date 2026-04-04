@@ -48,6 +48,10 @@ function errorHandler(err, req, res, next) {
   }
 
   // Unhandled — mask internals in production
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[ERR_INTERNAL]', err);
+  }
+
   const message =
     process.env.NODE_ENV === 'production'
       ? 'ERR_INTERNAL: An unspecified analysis error occurred.'

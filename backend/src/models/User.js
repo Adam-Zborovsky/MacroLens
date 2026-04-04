@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcryptRaw = require('bcryptjs');
+const bcrypt    = bcryptRaw.default || bcryptRaw;
 const { Schema } = mongoose;
 
 const MacroTargetSchema = new Schema(

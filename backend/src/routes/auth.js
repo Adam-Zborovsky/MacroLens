@@ -23,7 +23,7 @@ router.post('/signup', async (req, res, next) => {
 
     const user = await User.create({ email, password });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
 
     res.status(201).json({ token, user: { id: user._id, email: user.email } });
   } catch (err) {
@@ -42,7 +42,7 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: { code: 'ERR_INVALID_CREDENTIALS', message: 'Invalid email or password.' } });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
 
     res.json({ token, user: { id: user._id, email: user.email } });
   } catch (err) {
