@@ -50,6 +50,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         usdaSearchTerm: code,
         massGrams: (data['estimatedGrams'] as num?)?.toDouble() ?? 100.0,
         compositionConfidence: "high",
+        preparationState: "processed",
+        cookingMethod: "unknown",
         nutritionPer100g: NutritionProfile(
           calories: (nutrition['calories'] as num).toDouble(),
           proteinGrams: (nutrition['proteinGrams'] as num).toDouble(),
