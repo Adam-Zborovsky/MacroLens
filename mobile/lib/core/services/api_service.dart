@@ -4,7 +4,7 @@ import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/core/models/preset.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000/api/v1';
+  static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1';
   // static const String baseUrl = 'http://localhost:3000/api/v1'; // Local Dev
   // static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1'; // Production
   static final ApiService _instance = ApiService._internal();
