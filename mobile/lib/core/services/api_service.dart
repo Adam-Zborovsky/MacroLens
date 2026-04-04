@@ -4,8 +4,9 @@ import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/core/models/preset.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1';
+  static const String baseUrl = 'http://localhost:3000/api/v1';
   // static const String baseUrl = 'http://localhost:3000/api/v1'; // Local Dev
+  // static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1'; // Production
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
@@ -24,7 +25,9 @@ class ApiService {
       _token = data['token'];
       return data;
     } else {
-      throw Exception(jsonDecode(response.body)['error']?['message'] ?? 'Login failed');
+      throw Exception(
+        jsonDecode(response.body)['error']?['message'] ?? 'Login failed',
+      );
     }
   }
 
@@ -40,15 +43,20 @@ class ApiService {
       _token = data['token'];
       return data;
     } else {
-      throw Exception(jsonDecode(response.body)['error']?['message'] ?? 'Signup failed');
+      throw Exception(
+        jsonDecode(response.body)['error']?['message'] ?? 'Signup failed',
+      );
     }
   }
 
   bool get isAuthenticated => _token != null;
 
-  Future<Map<String, dynamic>> uploadCapture(String base64Image, {String? sessionGroupId}) async {
+  Future<Map<String, dynamic>> uploadCapture(
+    String base64Image, {
+    String? sessionGroupId,
+  }) async {
     final url = Uri.parse('$baseUrl/captures');
-    
+
     final response = await http.post(
       url,
       headers: {
@@ -71,12 +79,10 @@ class ApiService {
 
   Future<CaptureStatus> getCaptureStatus(String captureId) async {
     final url = Uri.parse('$baseUrl/captures/$captureId');
-    
+
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Authorization': 'Bearer $_token'},
     );
 
     if (response.statusCode == 200) {
@@ -89,7 +95,7 @@ class ApiService {
 
   Future<void> saveMeal(String mealId, DetectedItem updatedItem) async {
     final url = Uri.parse('$baseUrl/meals/$mealId');
-    
+
     final response = await http.patch(
       url,
       headers: {
@@ -103,7 +109,7 @@ class ApiService {
             'name': updatedItem.name,
             'massGrams': updatedItem.massGrams,
             'verificationStatus': 'user_confirmed',
-          }
+          },
         ],
         'nutritionDataVerified': true,
       }),
@@ -116,12 +122,10 @@ class ApiService {
 
   Future<List<Meal>> fetchMeals() async {
     final url = Uri.parse('$baseUrl/meals');
-    
+
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Authorization': 'Bearer $_token'},
     );
 
     if (response.statusCode == 200) {
@@ -140,7 +144,7 @@ class ApiService {
     required double fatGrams,
   }) async {
     final url = Uri.parse('$baseUrl/meals');
-    
+
     final response = await http.post(
       url,
       headers: {
@@ -165,25 +169,25 @@ class ApiService {
 
   Future<Map<String, dynamic>> getNutritionByBarcode(String barcode) async {
     final url = Uri.parse('$baseUrl/barcode/$barcode');
-    
+
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Authorization': 'Bearer $_token'},
     );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       final data = jsonDecode(response.body);
-      throw Exception(data['error']?['message'] ?? 'Failed to fetch barcode data');
+      throw Exception(
+        data['error']?['message'] ?? 'Failed to fetch barcode data',
+      );
     }
   }
 
   Future<void> updateGoals(Map<String, dynamic> goals) async {
     final url = Uri.parse('$baseUrl/users/metrics');
-    
+
     final response = await http.patch(
       url,
       headers: {
@@ -201,12 +205,10 @@ class ApiService {
   // Preset Methods
   Future<List<Preset>> fetchPresets() async {
     final url = Uri.parse('$baseUrl/presets');
-    
+
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Authorization': 'Bearer $_token'},
     );
 
     if (response.statusCode == 200) {
@@ -219,7 +221,7 @@ class ApiService {
 
   Future<Preset> createPreset(Preset preset) async {
     final url = Uri.parse('$baseUrl/presets');
-    
+
     final response = await http.post(
       url,
       headers: {
@@ -238,12 +240,10 @@ class ApiService {
 
   Future<void> deletePreset(String presetId) async {
     final url = Uri.parse('$baseUrl/presets/$presetId');
-    
+
     final response = await http.delete(
       url,
-      headers: {
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Authorization': 'Bearer $_token'},
     );
 
     if (response.statusCode != 204) {
@@ -262,7 +262,9 @@ class CaptureStatus {
   factory CaptureStatus.fromJson(Map<String, dynamic> json) {
     return CaptureStatus(
       status: json['analysisStatus'],
-      meal: json['resultMealId'] != null ? Meal.fromJson(json['resultMealId']) : null,
+      meal: json['resultMealId'] != null
+          ? Meal.fromJson(json['resultMealId'])
+          : null,
       errorCode: json['analysisError']?['code'],
     );
   }
