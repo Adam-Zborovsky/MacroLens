@@ -14,6 +14,7 @@ const mealsRouter    = require('./routes/meals');
 const usersRouter    = require('./routes/users');
 const barcodeRouter  = require('./routes/barcode');
 const presetsRouter  = require('./routes/presets');
+const waterRouter    = require('./routes/water');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.use('/api/v1/meals',             mealsRouter);
 app.use('/api/v1/users',             usersRouter);
 app.use('/api/v1/barcode',           barcodeRouter);
 app.use('/api/v1/presets',           presetsRouter);
+app.use('/api/v1/water',             waterRouter);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

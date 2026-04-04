@@ -55,6 +55,14 @@ const MetricsPatchSchema = z.object({
       fatRatio:           z.number().min(0).max(1),
     })
     .optional(),
+  dailyTargets: z
+    .object({
+      calories:           z.number().min(0),
+      proteinGrams:       z.number().min(0),
+      carbohydratesGrams: z.number().min(0),
+      fatGrams:           z.number().min(0),
+    })
+    .optional(),
 });
 
 // ─── GET /api/v1/users/me ─────────────────────────────────────────────────────
@@ -91,10 +99,14 @@ router.patch('/metrics', async (req, res, next) => {
     if (body.currentPhase) user.currentPhase = body.currentPhase;
     if (body.macroSplit)   Object.assign(user.macroSplit, body.macroSplit);
 
-    // Recompute TDEE and targets after any metric change
-    const tdee = computeTDEE(user.biometrics);
-    if (tdee) {
-      user.dailyTargets = computeMacroTargets(tdee, user.currentPhase, user.macroSplit);
+    if (body.dailyTargets) {
+      user.dailyTargets = body.dailyTargets;
+    } else {
+      // Recompute TDEE and targets after any metric change if manual targets are NOT provided
+      const tdee = computeTDEE(user.biometrics);
+      if (tdee) {
+        user.dailyTargets = computeMacroTargets(tdee, user.currentPhase, user.macroSplit);
+      }
     }
 
     user.isOnboarded = true;

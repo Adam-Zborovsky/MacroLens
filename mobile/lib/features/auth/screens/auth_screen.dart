@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:macro_lens_mobile/core/theme/app_theme.dart';
 import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/features/camera_vision/screens/camera_home_screen.dart';
+import 'package:macro_lens_mobile/features/auth/screens/onboarding_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -32,11 +33,22 @@ class _AuthScreenState extends State<AuthScreen> {
         await _apiService.signup(_emailController.text, _passwordController.text);
       }
 
+      // Check onboarding status
+      final user = await _apiService.fetchCurrentUser();
+      final bool isOnboarded = user['isOnboarded'] ?? false;
+
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CameraHomeScreen()),
-        );
+        if (isOnboarded) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CameraHomeScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -185,6 +185,21 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> fetchCurrentUser() async {
+    final url = Uri.parse('$baseUrl/users/me');
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $_token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch user data');
+    }
+  }
+
   Future<void> updateGoals(Map<String, dynamic> goals) async {
     final url = Uri.parse('$baseUrl/users/metrics');
 

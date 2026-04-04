@@ -15,14 +15,20 @@ class BarcodeScannerScreen extends StatefulWidget {
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController(
-    formats: [BarcodeFormat.all],
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-  );
+  late MobileScannerController _controller;
   
   bool _isProcessing = false;
   final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MobileScannerController(
+      formats: [BarcodeFormat.all],
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+    );
+  }
 
   void _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;

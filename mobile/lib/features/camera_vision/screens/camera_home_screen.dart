@@ -310,7 +310,13 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                     // For web/mobile, it's safer to dispose or just stop preview
                     // But stopping and restarting the controller is most reliable
                     await _controller?.dispose();
-                    setState(() => _isInitialized = false);
+                    setState(() {
+                      _isInitialized = false;
+                      _controller = null;
+                    });
+
+                    // Small delay to ensure hardware is released
+                    await Future.delayed(const Duration(milliseconds: 300));
 
                     if (!mounted) return;
                     await Navigator.push(
