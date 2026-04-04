@@ -56,7 +56,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text("CALIBRATION_HUB_V1.0", style: GoogleFonts.firaCode(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.bold)),
+        title: Text("GOALS", style: GoogleFonts.firaCode(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.secondary),
           onPressed: () => Navigator.pop(context),
@@ -67,7 +67,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("TRAINING_PHASE_SELECT", style: AppTheme.darkTheme.textTheme.labelMedium),
+            Text("SELECT_PHASE", style: AppTheme.darkTheme.textTheme.labelMedium),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -79,9 +79,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ],
             ),
             const SizedBox(height: 48),
-            Text("DAILY_MACRO_TARGETS", style: AppTheme.darkTheme.textTheme.labelMedium),
+            Text("DAILY_GOALS", style: AppTheme.darkTheme.textTheme.labelMedium),
             const SizedBox(height: 24),
-            _buildTargetInput("ENERGY_CAP", "KCAL", _calController),
+            _buildTargetInput("CALORIES", "KCAL", _calController),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -97,7 +97,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saveGoals,
-                child: const Text("SAVE_METABOLIC_CONFIG"),
+                child: const Text("SAVE_GOALS"),
               ),
             ),
           ],

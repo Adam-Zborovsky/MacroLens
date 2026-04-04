@@ -173,7 +173,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
         elevation: 0,
         centerTitle: false,
         title: Text(
-          "MANUAL_ENTRY_V1.1",
+          "MANUAL_ENTRY",
           style: GoogleFonts.firaCode(
             color: AppTheme.primary,
             fontSize: 14,
@@ -191,13 +191,13 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Subject Name
-            Text("SUBJECT_IDENTIFIER", style: textTheme.labelMedium),
+            Text("MEAL_NAME", style: textTheme.labelMedium),
             const SizedBox(height: 12),
             TextField(
               controller: _nameController,
               style: GoogleFonts.firaSans(color: AppTheme.ghostWhite, fontSize: 16),
               decoration: InputDecoration(
-                hintText: "ENTER_ITEM_NAME...",
+                hintText: "Enter meal name...",
                 prefixIcon: const Icon(Icons.edit_note_rounded, color: AppTheme.primary),
               ),
             ),
@@ -207,11 +207,11 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("MACRO_COMPOSITION", style: textTheme.labelMedium),
+                Text("NUTRITION_FACTS", style: textTheme.labelMedium),
                 TextButton.icon(
                   onPressed: _saveAsPreset,
                   icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                  label: Text("SAVE_AS_PRESET", style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.primary)),
+                  label: Text("SAVE_AS_FAVORITE", style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.primary)),
                   style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
                 ),
               ],
@@ -246,7 +246,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
             const SizedBox(height: 48),
 
             // Presets
-            Text("SAVED_SPECIMENS_PRESETS", style: textTheme.labelMedium),
+            Text("YOUR_FAVORITES", style: textTheme.labelMedium),
             const SizedBox(height: 16),
             if (_isLoadingPresets)
               const Center(child: CircularProgressIndicator(color: AppTheme.primary))
@@ -255,7 +255,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 24.0),
                 child: Center(
                   child: Text(
-                    "NO_PRESETS_FOUND",
+                    "NO_FAVORITES_FOUND",
                     style: GoogleFonts.firaCode(fontSize: 12, color: AppTheme.secondary.withOpacity(0.5)),
                   ),
                 ),
@@ -276,7 +276,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _executeLog,
-                child: const Text("EXECUTE_DATA_LOG"),
+                child: const Text("LOG_MEAL"),
               ),
             ),
             const SizedBox(height: 32),

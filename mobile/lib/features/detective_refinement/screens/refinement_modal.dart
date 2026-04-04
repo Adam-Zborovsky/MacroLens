@@ -64,7 +64,7 @@ class _RefinementModalState extends State<RefinementModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("SELECT_ALTERNATIVE_SPECIMEN", style: AppTheme.darkTheme.textTheme.labelMedium),
+              Text("NOT_THIS_FOOD?", style: AppTheme.darkTheme.textTheme.labelMedium),
               const SizedBox(height: 16),
               ...widget.alternatives.map((alt) => ListTile(
                 title: Text(alt.name.toUpperCase(), style: GoogleFonts.firaCode(color: Colors.white, fontSize: 14)),
@@ -136,7 +136,7 @@ class _RefinementModalState extends State<RefinementModal> {
           ),
           const SizedBox(height: 32),
 
-          Text("CALIBRATE_MASS", style: AppTheme.darkTheme.textTheme.labelMedium),
+          Text("ADJUST_WEIGHT", style: AppTheme.darkTheme.textTheme.labelMedium),
           const SizedBox(height: 16),
           NotchedHapticSlider(
             initialValue: _currentMass,
@@ -165,7 +165,7 @@ class _RefinementModalState extends State<RefinementModal> {
                     children: [
                       const Icon(Icons.swap_horiz_rounded, size: 18),
                       const SizedBox(width: 4),
-                      Text("SWAP", style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text("CHANGE", style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -179,7 +179,7 @@ class _RefinementModalState extends State<RefinementModal> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text("VERIFY_&_LOG"),
+                  child: const Text("SAVE_MEAL"),
                 ),
               ),
             ],
@@ -192,7 +192,7 @@ class _RefinementModalState extends State<RefinementModal> {
 
   Widget _buildConfidenceBadge() {
     final color = _activeItem.compositionConfidence == 'high' ? AppTheme.primary : Colors.amber;
-    final status = _activeItem.verificationStatus == 'user_corrected' ? 'USER_VERIFIED' : 'GUESSED: ${_activeItem.compositionConfidence.toUpperCase()}_CONFIDENCE';
+    final status = _activeItem.verificationStatus == 'user_corrected' ? 'VERIFIED_BY_YOU' : 'ESTIMATED: ${_activeItem.compositionConfidence.toUpperCase()}';
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -232,7 +232,7 @@ class _RefinementModalState extends State<RefinementModal> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("ESTIMATED_ENERGY", style: AppTheme.darkTheme.textTheme.bodySmall),
+              Text("CALORIES", style: AppTheme.darkTheme.textTheme.bodySmall),
               Text(
                 "${cals.toInt()} KCAL",
                 style: GoogleFonts.firaCode(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.ghostWhite),

@@ -80,8 +80,20 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
     if (_cameras != null && _cameras!.isNotEmpty) {
+      // Find the back camera
+      CameraDescription? backCamera;
+      for (var camera in _cameras!) {
+        if (camera.lensDirection == CameraLensDirection.back) {
+          backCamera = camera;
+          break;
+        }
+      }
+
+      // Fallback to the first camera if no back camera is found
+      final selectedCamera = backCamera ?? _cameras![0];
+
       _controller = CameraController(
-        _cameras![0],
+        selectedCamera,
         ResolutionPreset.high,
         enableAudio: false,
       );
@@ -200,9 +212,9 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   }
 
   void _showDiagnosticError(String error) {
-    String diagnostic = "ERR_VISUAL_OBSCURED";
+    String diagnostic = "TRY_AGAIN";
     if (error.contains("ERR_NO_FOOD_DETECTED")) {
-      diagnostic = "ERR_ZERO_SPECIMENS_DETECTED\nADVICE: IMPROVE_LIGHTING_OR_CENTER_ITEM";
+      diagnostic = "NO_FOOD_FOUND\nTRY_BETTER_LIGHT_OR_CENTER_ITEM";
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -215,7 +227,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("DIAGNOSTIC_FAILURE", style: GoogleFonts.firaCode(fontWeight: FontWeight.bold, fontSize: 12)),
+            Text("ERROR", style: GoogleFonts.firaCode(fontWeight: FontWeight.bold, fontSize: 12)),
             const SizedBox(height: 4),
             Text(diagnostic, style: GoogleFonts.firaCode(fontSize: 10)),
           ],
@@ -291,10 +303,24 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                 ),
                 _MinimalIconButton(
                   icon: Icons.qr_code_scanner_rounded,
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
-                  ),
+                  onPressed: () async {
+                    if (_controller != null && _controller!.value.isStreamingImages) {
+                      await _controller!.stopImageStream();
+                    }
+                    // For web/mobile, it's safer to dispose or just stop preview
+                    // But stopping and restarting the controller is most reliable
+                    await _controller?.dispose();
+                    setState(() => _isInitialized = false);
+
+                    if (!mounted) return;
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+                    );
+                    
+                    // Restart camera when coming back
+                    _initializeCamera();
+                  },
                 ),
                 _MinimalIconButton(
                   icon: Icons.history_rounded,
@@ -317,7 +343,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                     context,
                     MaterialPageRoute(builder: (context) => const DashboardScreen()),
                   ),
-                  label: "DASHBOARD",
+                  label: "HOME",
                 ),
                 // Modern Shutter Button
                 _buildModernShutter(),
@@ -381,7 +407,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           right: 0,
           child: Center(
             child: Text(
-              "ANALYZING_METABOLIC_DATA",
+              "ANALYZING_MEAL...",
               style: GoogleFonts.firaCode(
                 color: Colors.white,
                 fontSize: 10,

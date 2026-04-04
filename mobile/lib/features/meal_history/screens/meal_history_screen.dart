@@ -30,7 +30,7 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "ARCHIVE_V1.0",
+          "HISTORY",
           style: GoogleFonts.firaCode(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
@@ -49,11 +49,11 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
                   return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text("ERR_FETCH_FAILED: ${snapshot.error}", style: GoogleFonts.firaCode(fontSize: 10, color: Colors.redAccent)));
+                  return Center(child: Text("ERROR: ${snapshot.error}", style: GoogleFonts.firaCode(fontSize: 10, color: Colors.redAccent)));
                 }
                 final meals = snapshot.data ?? [];
                 if (meals.isEmpty) {
-                  return Center(child: Text("ZERO_RECORDS_FOUND", style: GoogleFonts.firaCode(fontSize: 12, color: AppTheme.secondary)));
+                  return Center(child: Text("NO_MEALS_FOUND", style: GoogleFonts.firaCode(fontSize: 12, color: AppTheme.secondary)));
                 }
                 return ListView.separated(
                   padding: const EdgeInsets.all(24),
@@ -80,7 +80,7 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
         children: [
           TextField(
             decoration: InputDecoration(
-              hintText: "SEARCH_FILES...",
+              hintText: "Search meals...",
               prefixIcon: const Icon(Icons.search, size: 20),
               isDense: true,
             ),
@@ -89,9 +89,9 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _FilterChip(label: "VERIFIED", isActive: true),
+              _FilterChip(label: "ALL", isActive: true),
               _FilterChip(label: "LATEST"),
-              _FilterChip(label: "HIGH_PROTEIN"),
+              _FilterChip(label: "PROTEIN"),
             ],
           ),
         ],
@@ -100,8 +100,8 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
   }
 
   Widget _buildArchiveEntry(Meal meal) {
-    final timeStr = DateFormat('hh:mm_a').format(meal.loggedAt).toUpperCase();
-    final specimenName = meal.detectedItems.isNotEmpty ? meal.detectedItems[0].name.toUpperCase() : "UNKNOWN_SPECIMEN";
+    final timeStr = DateFormat('hh:mm a').format(meal.loggedAt).toUpperCase();
+    final specimenName = meal.detectedItems.isNotEmpty ? meal.detectedItems[0].name.toUpperCase() : "UNKNOWN_MEAL";
 
     return Container(
       decoration: BoxDecoration(
@@ -127,7 +127,7 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "CASE_FILE_#${meal.id?.substring(0, 4) ?? 'NULL'}",
+                        "MEAL_#${meal.id?.substring(0, 4) ?? 'NULL'}",
                         style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.primary),
                       ),
                       Text(

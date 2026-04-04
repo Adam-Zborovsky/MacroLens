@@ -82,11 +82,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "COMMAND_CENTER_V1.0",
+              "DASHBOARD",
               style: GoogleFonts.firaCode(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text("TODAY'S_STATUS", style: AppTheme.darkTheme.textTheme.headlineMedium),
+            Text("DAILY_SUMMARY", style: AppTheme.darkTheme.textTheme.headlineMedium),
           ],
         ),
         IconButton(
@@ -113,8 +113,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("ENERGY_CONSUMPTION", style: AppTheme.darkTheme.textTheme.labelMedium),
-              Text("${percent > 1.0 ? 'OVER_CAP' : 'ACTIVE'}", 
+              Text("CALORIES", style: AppTheme.darkTheme.textTheme.labelMedium),
+              Text("${percent > 1.0 ? 'OVER_GOAL' : 'ON_TRACK'}", 
                 style: GoogleFonts.firaCode(fontSize: 10, color: percent > 1.0 ? Colors.redAccent : AppTheme.primary)
               ),
             ],
@@ -144,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            "REMAINING_BUDGET: ${remaining.toInt()} KCAL",
+            "LEFT: ${remaining.toInt()} KCAL",
             style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.secondary),
           ),
         ],
@@ -170,8 +170,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("DAILY_SPECIMENS", style: AppTheme.darkTheme.textTheme.labelMedium),
-            Text("${meals.length}_FILES", style: AppTheme.darkTheme.textTheme.bodySmall),
+            Text("TODAY'S_MEALS", style: AppTheme.darkTheme.textTheme.labelMedium),
+            Text("${meals.length}_ITEMS", style: AppTheme.darkTheme.textTheme.bodySmall),
           ],
         ),
         const SizedBox(height: 16),
@@ -180,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             height: 100,
             width: double.infinity,
             decoration: BoxDecoration(color: AppTheme.surfaceContainerLow),
-            child: Center(child: Text("NO_DATA_LOGGED", style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.secondary))),
+            child: Center(child: Text("NO_MEALS_LOGGED", style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.secondary))),
           )
         else
           SizedBox(
@@ -240,7 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("HYDRATION_LOG", style: AppTheme.darkTheme.textTheme.labelMedium),
+              Text("WATER_LOG", style: AppTheme.darkTheme.textTheme.labelMedium),
               Text("1750ML / 2500ML", style: AppTheme.darkTheme.textTheme.bodySmall),
             ],
           ),
@@ -262,7 +262,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: TextButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
-              label: const Text("ADD_250ML"),
+              label: const Text("ADD_CUP"),
               style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
             ),
           ),

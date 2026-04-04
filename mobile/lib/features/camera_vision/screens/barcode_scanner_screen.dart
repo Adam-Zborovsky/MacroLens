@@ -18,6 +18,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   final MobileScannerController _controller = MobileScannerController(
     formats: [BarcodeFormat.all],
     detectionSpeed: DetectionSpeed.noDuplicates,
+    facing: CameraFacing.back,
   );
   
   bool _isProcessing = false;
@@ -125,7 +126,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "SCAN_PRODUCT_BARCODE",
+          "SCAN_BARCODE",
           style: GoogleFonts.firaCode(
             color: Colors.white,
             fontSize: 12,
@@ -164,7 +165,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             right: 0,
             child: Center(
               child: Text(
-                "ALIGN_BARCODE_WITHIN_FRAME",
+                "PUT_BARCODE_IN_FRAME",
                 style: GoogleFonts.firaCode(
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 10,
