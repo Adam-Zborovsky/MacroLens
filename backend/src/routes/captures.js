@@ -49,18 +49,15 @@ router.post('/', async (req, res, next) => {
       console.log(`[ANALYSIS] Starting analysis for user ${userId} and capture ${capture._id}`);
       const geminiData = await analyzer.analyzeCapture(imageBase64, mimeType);
       
-      console.log(`[ANALYSIS] Gemini data received. Mapping to schema...`);
+      console.log(`[ANALYSIS] Gemini data received. Mapping to schema (transient)...`);
       const mealData = AnalyzerService.mapToMealSchema(geminiData, userId, capture._id);
       
-      console.log(`[ANALYSIS] Creating meal record...`);
-      const meal = await Meal.create(mealData);
-
       capture.analysisStatus = 'completed';
-      capture.resultMealId = meal._id;
+      // We don't have a resultMealId yet since it's not saved to the DB
       await capture.save();
 
-      console.log(`[ANALYSIS] Capture ${capture._id} completed successfully.`);
-      res.status(201).json({ capture, caseFile: meal });
+      console.log(`[ANALYSIS] Capture ${capture._id} analyzed. Returning data for confirmation.`);
+      res.status(201).json({ capture, caseFile: mealData });
     } catch (analysisErr) {
       console.error(`[ANALYSIS_ERROR] Capture ${capture._id} failed:`, analysisErr);
       capture.analysisStatus = 'failed';

@@ -93,38 +93,31 @@ class ApiService {
     }
   }
 
-  Future<void> saveMeal(String mealId, DetectedItem updatedItem) async {
-    final url = Uri.parse('$baseUrl/meals/$mealId');
+  Future<void> confirmMeal(Map<String, dynamic> mealData) async {
+    final url = Uri.parse('$baseUrl/meals/confirm');
 
-    final response = await http.patch(
+    final response = await http.post(
       url,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_token',
       },
-      body: jsonEncode({
-        'detectedItems': [
-          {
-            'itemId': updatedItem.itemId,
-            'name': updatedItem.name,
-            'massGrams': updatedItem.massGrams,
-            'verificationStatus': 'user_confirmed',
-          },
-        ],
-        'nutritionDataVerified': true,
-      }),
+      body: jsonEncode(mealData),
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to save meal log: ${response.body}');
+    if (response.statusCode != 201) {
+      throw Exception('Failed to confirm and save meal: ${response.body}');
     }
   }
 
-  Future<List<Meal>> fetchMeals() async {
-    final url = Uri.parse('$baseUrl/meals');
+  Future<List<Meal>> fetchMeals({String? period}) async {
+    var uri = Uri.parse('$baseUrl/meals');
+    if (period != null) {
+      uri = uri.replace(queryParameters: {'period': period});
+    }
 
     final response = await http.get(
-      url,
+      uri,
       headers: {'Authorization': 'Bearer $_token'},
     );
 

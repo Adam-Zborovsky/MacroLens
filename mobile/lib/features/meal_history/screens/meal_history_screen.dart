@@ -15,11 +15,18 @@ class MealHistoryScreen extends StatefulWidget {
 class _MealHistoryScreenState extends State<MealHistoryScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Meal>> _mealsFuture;
+  bool _isTodayOnly = true;
 
   @override
   void initState() {
     super.initState();
-    _mealsFuture = _apiService.fetchMeals();
+    _refreshMeals();
+  }
+
+  void _refreshMeals() {
+    setState(() {
+      _mealsFuture = _apiService.fetchMeals(period: _isTodayOnly ? 'today' : null);
+    });
   }
 
   @override
@@ -30,9 +37,21 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "HISTORY",
+          _isTodayOnly ? "TODAY'S_LOG" : "COMPLETE_ARCHIVE",
           style: GoogleFonts.firaCode(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() => _isTodayOnly = !_isTodayOnly);
+              _refreshMeals();
+            },
+            child: Text(
+              _isTodayOnly ? "[ SEE_ALL ]" : "[ SEE_TODAY ]",
+              style: GoogleFonts.firaCode(fontSize: 10, color: AppTheme.primary.withOpacity(0.8)),
+            ),
+          ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.secondary),
           onPressed: () => Navigator.pop(context),
@@ -40,7 +59,7 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
       ),
       body: Column(
         children: [
-          _buildSearchAndFilter(),
+          // _buildSearchAndFilter(), // Temporarily simplified for log focus
           Expanded(
             child: FutureBuilder<List<Meal>>(
               future: _mealsFuture,
@@ -53,7 +72,19 @@ class _MealHistoryScreenState extends State<MealHistoryScreen> {
                 }
                 final meals = snapshot.data ?? [];
                 if (meals.isEmpty) {
-                  return Center(child: Text("NO_MEALS_FOUND", style: GoogleFonts.firaCode(fontSize: 12, color: AppTheme.secondary)));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("NO_RECORDS_FOUND", style: GoogleFonts.firaCode(fontSize: 12, color: AppTheme.secondary)),
+                        const SizedBox(height: 8),
+                        Text(
+                          _isTodayOnly ? "LOG_YOUR_FIRST_SPECIMEN_TODAY" : "NO_HISTORY_AVAILABLE",
+                          style: GoogleFonts.inter(fontSize: 10, color: AppTheme.secondary.withOpacity(0.6)),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 return ListView.separated(
                   padding: const EdgeInsets.all(24),

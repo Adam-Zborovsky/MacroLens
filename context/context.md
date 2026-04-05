@@ -61,7 +61,7 @@ CSV/PDF report exports; Apple Health / Google Fit sync.
 
 ### Prompting Principles
 1. **Professional Role**: Act as a professional nutritionist performing a visual dietary assessment.
-2. **Multi-Item Awareness**: Treat every image as potentially containing multiple food items.
+2. **Multi-Item Awareness**: Treat every image as potentially containing multiple food items. **DECONSTRUCT COMPOSITE ITEMS**: Never group distinct food types into a single label (e.g., "toast with cheese" must be "toast" and "cheese" as separate items).
 3. **Portion Anchors**: Use plate size (23-27cm) and visible objects (hands, cutlery) to anchor volume.
 4. **State of Food**: Distinguish between raw vs. cooked and cooking methods (grilled vs. fried).
 5. **Confidence Reporting**: High/Medium/Low confidence per item.
@@ -101,7 +101,7 @@ CSV/PDF report exports; Apple Health / Google Fit sync.
       "nutrition_total": { ... }
     }
   ],
-  "meal_totals": { "calories": 0, "protein_g": 0, "carbohydrates_g": 0, "fat_g": 0 }
+  "meal_totals": { "calories": 0, "protein_g": 0, "carbohydrates_g": 0, "fat_g": 0, "fiber_g": 0 }
 }
 ```
 

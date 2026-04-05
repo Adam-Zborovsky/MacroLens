@@ -6,7 +6,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const ANALYSIS_PROMPT = `You are a professional nutritionist performing a forensic visual dietary assessment. Analyze the food in this image and return ONLY a valid JSON object — no preamble, no commentary, no markdown code fences.
 
 Rules:
-1. Identify ALL food items visible. Treat the image as a dataset to be solved.
+1. Identify ALL individual food components visible. Treat the image as a dataset to be solved.
 2. Use plate size (~23–27cm), cutlery, or visible hands as volumetric anchors to estimate grams.
 3. Distinguish raw vs cooked and identify cooking method where visible.
 4. Report confidence per item: "high" (clear, well-lit, identifiable), "medium" (partially obscured or mixed dish), "low" (unclear).
@@ -15,6 +15,13 @@ Rules:
 7. Never fabricate nutritional values — use standard per-100g reference data.
 8. If the image contains no recognizable food, return { "error": "ERR_NO_FOOD_DETECTED" }.
 9. If the image is too obscured to analyze, return { "error": "ERR_VISUAL_OBSCURED" }.
+10. ATOMIC DECONSTRUCTION (CRITICAL): You MUST deconstruct every dish into its constituent ingredients. NEVER group distinct foods into a single entry. 
+    - Case A: One food is on top of another (e.g., cheese on toast). You MUST return TWO separate objects: one for "bread/toast" and one for "cheese".
+    - Case B: Foods are mixed but distinguishable (e.g., a cobb salad). You MUST return separate objects for each major component (e.g., "egg", "bacon", "avocado", "lettuce").
+    - Case C: Composite items (e.g., sandwich). You MUST return separate objects for "bread", "ham", "cheese", etc.
+    This is critical for accurate macro tracking. Each item MUST have its own "bounding_box_2d" and "estimated_grams".
+11. BOUNDING BOXES: Provide precise [ymin, xmin, ymax, xmax] coordinates for EACH atomic item. Coordinates must be normalized (0-1000).
+12. TOTALS CONSISTENCY: Ensure the "meal_totals" object is the exact sum of all "nutrition_total" values from the "items" array.
 
 Required JSON schema (strict — no additional fields):
 {
@@ -54,7 +61,7 @@ Required JSON schema (strict — no additional fields):
   ],
   "meal_totals": {
     "calories": <number>, "protein_g": <number>,
-    "carbohydrates_g": <number>, "fat_g": <number>
+    "carbohydrates_g": <number>, "fat_g": <number>, "fiber_g": <number>
   },
   "volumetric_calibration": {
     "plate_diameter_cm": <number|null>,
@@ -121,63 +128,80 @@ class AnalyzerService {
    * Map Gemini's snake_case output to the Mongoose schema shape.
    */
   static mapToMealSchema(geminiData, userId, captureId) {
-    const items = geminiData.items.map((item) => ({
-      itemId: item.item_id || crypto.randomUUID(),
-      name:            item.name,
-      usdaSearchTerm:  item.usda_search_term,
-      boundingBox2D:   item.bounding_box_2d || [],
-      massGrams:       item.estimated_grams,
-      compositionConfidence: item.confidence,
-      preparationState:  item.state,
-      cookingMethod:     item.cooking_method,
-      nutritionPer100g: {
-        calories:           item.nutrition_per_100g.calories,
-        proteinGrams:       item.nutrition_per_100g.protein_g,
-        carbohydratesGrams: item.nutrition_per_100g.carbohydrates_g,
-        fatGrams:           item.nutrition_per_100g.fat_g,
-        fiberGrams:         item.nutrition_per_100g.fiber_g ?? 0,
-      },
-      nutritionTotal: {
-        calories:           item.nutrition_total.calories,
-        proteinGrams:       item.nutrition_total.protein_g,
-        carbohydratesGrams: item.nutrition_total.carbohydrates_g,
-        fatGrams:           item.nutrition_total.fat_g,
-        fiberGrams:         item.nutrition_total.fiber_g ?? 0,
-      },
-      alternativeCandidates: (item.alternatives || []).map((alt) => ({
-        name:           alt.name,
-        usdaSearchTerm: alt.usda_search_term,
-        nutritionPer100g: {
-          calories:           alt.nutrition_per_100g.calories,
-          proteinGrams:       alt.nutrition_per_100g.protein_g,
-          carbohydratesGrams: alt.nutrition_per_100g.carbohydrates_g,
-          fatGrams:           alt.nutrition_per_100g.fat_g,
-          fiberGrams:         alt.nutrition_per_100g.fiber_g ?? 0,
-        },
-      })),
-      verificationStatus: 'ai_verified',
-    }));
+    const items = (geminiData.items || []).map((item) => {
+      const nutritionPer100g = item.nutrition_per_100g || {};
+      const nutritionTotal = item.nutrition_total || {};
 
-    const totals = geminiData.meal_totals;
+      return {
+        itemId: item.item_id || crypto.randomUUID(),
+        name:            item.name,
+        usdaSearchTerm:  item.usda_search_term,
+        boundingBox2D:   item.bounding_box_2d || [],
+        massGrams:       item.estimated_grams || 0,
+        compositionConfidence: item.confidence || 'medium',
+        preparationState:  item.state || 'unknown',
+        cookingMethod:     item.cooking_method || 'unknown',
+        nutritionPer100g: {
+          calories:           nutritionPer100g.calories || 0,
+          proteinGrams:       nutritionPer100g.protein_g || 0,
+          carbohydratesGrams: nutritionPer100g.carbohydrates_g || 0,
+          fatGrams:           nutritionPer100g.fat_g || 0,
+          fiberGrams:         nutritionPer100g.fiber_g ?? 0,
+        },
+        nutritionTotal: {
+          calories:           nutritionTotal.calories || 0,
+          proteinGrams:       nutritionTotal.protein_g || 0,
+          carbohydratesGrams: nutritionTotal.carbohydrates_g || 0,
+          fatGrams:           nutritionTotal.fat_g || 0,
+          fiberGrams:         nutritionTotal.fiber_g ?? 0,
+        },
+        alternativeCandidates: (item.alternatives || []).map((alt) => {
+          const altNut = alt.nutrition_per_100g || {};
+          return {
+            name:           alt.name,
+            usdaSearchTerm: alt.usda_search_term,
+            nutritionPer100g: {
+              calories:           altNut.calories || 0,
+              proteinGrams:       altNut.protein_g || 0,
+              carbohydratesGrams: altNut.carbohydrates_g || 0,
+              fatGrams:           altNut.fat_g || 0,
+              fiberGrams:         altNut.fiber_g ?? 0,
+            },
+          };
+        }),
+        verificationStatus: 'ai_verified',
+      };
+    });
+
+    // If Gemini's meal_totals are missing, we compute them from items
+    const totals = geminiData.meal_totals || items.reduce((acc, item) => {
+      acc.calories += item.nutritionTotal.calories;
+      acc.protein_g += item.nutritionTotal.proteinGrams;
+      acc.carbohydrates_g += item.nutritionTotal.carbohydratesGrams;
+      acc.fat_g += item.nutritionTotal.fatGrams;
+      acc.fiber_g += item.nutritionTotal.fiberGrams;
+      return acc;
+    }, { calories: 0, protein_g: 0, carbohydrates_g: 0, fat_g: 0, fiber_g: 0 });
+
     const calibration = geminiData.volumetric_calibration || {};
 
     return {
       userId,
       captureId,
-      mealType:          geminiData.meal_type,
-      overallConfidence: geminiData.overall_confidence,
+      mealType:          geminiData.meal_type || 'unknown',
+      overallConfidence: geminiData.overall_confidence || 'medium',
       detectedItems:     items,
       mealTotals: {
-        calories:           totals.calories,
-        proteinGrams:       totals.protein_g,
-        carbohydratesGrams: totals.carbohydrates_g,
-        fatGrams:           totals.fat_g,
-        fiberGrams:         0,
+        calories:           totals.calories || 0,
+        proteinGrams:       totals.protein_g || 0,
+        carbohydratesGrams: totals.carbohydrates_g || 0,
+        fatGrams:           totals.fat_g || 0,
+        fiberGrams:         totals.fiber_g ?? 0,
       },
       volumetricAnchors: {
-        estimatedPlateDiameterCm: calibration.plate_diameter_cm,
-        anchorObjectDetected:     calibration.anchor_object,
-        calibrationMethod:        calibration.method,
+        estimatedPlateDiameterCm: calibration.plate_diameter_cm || null,
+        anchorObjectDetected:     calibration.anchor_object || null,
+        calibrationMethod:        calibration.method || 'unknown',
       },
       entryMethod: 'vision_capture',
     };

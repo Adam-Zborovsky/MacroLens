@@ -34,8 +34,46 @@ const ManualMealSchema = z.object({
 router.get('/', async (req, res, next) => {
   try {
     const userId = req.userId;
-    const meals = await Meal.find({ userId }).sort({ loggedAt: -1 });
+    const { period } = req.query;
+    
+    let query = { userId };
+    
+    if (period === 'today') {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      query.loggedAt = { $gte: start, $lte: end };
+    }
+
+    const meals = await Meal.find(query).sort({ loggedAt: -1 });
     res.json(meals);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── POST /api/v1/meals/confirm ──────────────────────────────────────────────
+
+router.post('/confirm', async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    // Basic validation for confirmed data
+    const meal = new Meal({
+      ...req.body,
+      userId,
+      loggedAt: new Date(),
+    });
+
+    await meal.save();
+
+    // Link back to capture if applicable
+    if (req.body.captureId) {
+      const Capture = require('../models/Capture');
+      await Capture.findByIdAndUpdate(req.body.captureId, { resultMealId: meal._id });
+    }
+
+    res.status(201).json(meal);
   } catch (err) {
     next(err);
   }

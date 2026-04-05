@@ -168,32 +168,42 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
 
-      // 5. Upload to Backend
+      // 5. Upload to Backend (Analysis only, not saved yet)
       final response = await _apiService.uploadCapture(base64Image);
-      final meal = Meal.fromJson(response['caseFile']);
+      
+      // response['caseFile'] is now transient meal data
+      final transientMeal = Meal.fromJson(response['caseFile']);
+      final captureId = response['capture']['_id'];
       
       if (!mounted) return;
 
       setState(() {
         _isScanning = false;
+        _capturedImage = null; // Unfreeze UI
       });
 
       // 6. Show Refinement Modal
-      if (meal.detectedItems.isNotEmpty) {
-        final activeItem = meal.detectedItems[0];
-        
+      if (transientMeal.detectedItems.isNotEmpty) {
         RefinementModal.show(
           context,
-          item: activeItem,
-          alternatives: activeItem.alternativeCandidates,
+          item: transientMeal.detectedItems[0],
+          alternatives: transientMeal.detectedItems[0].alternativeCandidates,
           onSave: (updatedItem) async {
             HapticFeedback.lightImpact();
             try {
-              await _apiService.saveMeal(meal.id!, updatedItem);
+              // Update the item in the transient meal
+              transientMeal.detectedItems[0] = updatedItem;
+              // Recalculate totals (simple for 1 item, but good practice)
+              // Actually we can just send the whole transientMeal to confirm
+              final mealData = transientMeal.toJson();
+              mealData['captureId'] = captureId;
+              
+              await _apiService.confirmMeal(mealData);
+              
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("CASE_FILE_#${meal.id!.substring(0, 8)}_LOGGED_SUCCESSFULLY", style: GoogleFonts.firaCode(fontSize: 10)),
+                    content: Text("MEAL_LOGGED_SUCCESSFULLY", style: GoogleFonts.firaCode(fontSize: 10)),
                     backgroundColor: AppTheme.primaryContainer,
                   ),
                 );
@@ -204,10 +214,6 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           },
         );
       }
-
-      setState(() {
-        _capturedImage = null;
-      });
 
     } catch (e) {
       if (mounted) {
