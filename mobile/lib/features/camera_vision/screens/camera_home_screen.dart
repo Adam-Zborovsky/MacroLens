@@ -80,17 +80,13 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
     if (_cameras != null && _cameras!.isNotEmpty) {
-      // Find the back camera
-      CameraDescription? backCamera;
-      for (var camera in _cameras!) {
-        if (camera.lensDirection == CameraLensDirection.back) {
-          backCamera = camera;
-          break;
-        }
-      }
-
-      // Fallback to the first camera if no back camera is found
-      final selectedCamera = backCamera ?? _cameras![0];
+      // Find all back cameras
+      List<CameraDescription> backCameras = _cameras!.where((c) => c.lensDirection == CameraLensDirection.back).toList();
+      
+      // On many modern devices, the first back camera might be the ultra-wide (0.5x).
+      // The main camera is often the one at index 0 or sometimes we need to set the zoom level.
+      // We'll pick the first back camera and explicitly set zoom to 1.0 if possible.
+      final selectedCamera = backCameras.isNotEmpty ? backCameras[0] : _cameras![0];
 
       _controller = CameraController(
         selectedCamera,
@@ -99,6 +95,19 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       );
 
       await _controller!.initialize();
+      
+      // Ensure we are at 1.0x zoom (to avoid starting on ultra-wide 0.5x if that's the default)
+      try {
+        double minZoom = await _controller!.getMinZoomLevel();
+        double maxZoom = await _controller!.getMaxZoomLevel();
+        // If min zoom is less than 1.0 (e.g. 0.5), explicitly set it to 1.0
+        if (minZoom < 1.0 && maxZoom >= 1.0) {
+          await _controller!.setZoomLevel(1.0);
+        }
+      } catch (e) {
+        debugPrint("ZOOM_INIT_ERR: $e");
+      }
+
       if (!mounted) return;
       setState(() {
         _isInitialized = true;

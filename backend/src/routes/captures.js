@@ -46,23 +46,38 @@ router.post('/', async (req, res, next) => {
 
     // 4. Run AI analysis
     try {
+      console.log(`[ANALYSIS] Starting analysis for user ${userId} and capture ${capture._id}`);
       const geminiData = await analyzer.analyzeCapture(imageBase64, mimeType);
       
+      console.log(`[ANALYSIS] Gemini data received. Mapping to schema...`);
       const mealData = AnalyzerService.mapToMealSchema(geminiData, userId, capture._id);
+      
+      console.log(`[ANALYSIS] Creating meal record...`);
       const meal = await Meal.create(mealData);
 
       capture.analysisStatus = 'completed';
       capture.resultMealId = meal._id;
       await capture.save();
 
+      console.log(`[ANALYSIS] Capture ${capture._id} completed successfully.`);
       res.status(201).json({ capture, caseFile: meal });
     } catch (analysisErr) {
+      console.error(`[ANALYSIS_ERROR] Capture ${capture._id} failed:`, analysisErr);
       capture.analysisStatus = 'failed';
       capture.analysisError = {
         code: analysisErr.code || 'ERR_ANALYSIS_FAILED',
         message: analysisErr.message,
       };
       await capture.save();
+      
+      if (analysisErr.status === 422) {
+        return res.status(422).json({
+          error: {
+            code: analysisErr.code,
+            message: analysisErr.message,
+          }
+        });
+      }
       throw analysisErr;
     }
   } catch (err) {
