@@ -48,7 +48,9 @@ class _MealReviewScreenState extends State<MealReviewScreen> {
       _meal = Meal(
         userId: _meal.userId,
         captureId: _meal.captureId,
+        caseFileId: _meal.caseFileId,
         mealType: _meal.mealType,
+        loggedAt: _meal.loggedAt,
         overallConfidence: _meal.overallConfidence,
         detectedItems: _meal.detectedItems,
         mealTotals: NutritionProfile(

@@ -97,6 +97,10 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             ),
           );
         },
+        onDelete: () {
+          // Placeholder for barcode deletion logic
+          debugPrint("BARCODE_ITEM_DELETED");
+        },
       );
 
     } catch (e) {

@@ -290,7 +290,9 @@ ${ANALYSIS_PROMPT}`;
     return {
       userId,
       captureId,
+      caseFileId:        geminiData.scan_id || crypto.randomUUID(),
       mealType:          geminiData.meal_type || 'unknown',
+      loggedAt:          new Date().toISOString(),
       overallConfidence: geminiData.overall_confidence || 'medium',
       detectedItems:     items,
       mealTotals: {
