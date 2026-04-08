@@ -5,7 +5,7 @@ import 'package:macro_lens_mobile/core/models/preset.dart';
 
 class ApiService {
   static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1';
-  // static const String baseUrl = 'http://localhost:3000/api/v1'; // Local Dev
+  // static const String baseUrl = 'http://localhost:4000/api/v1'; // Local Dev
   // static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1'; // Production
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -52,7 +52,7 @@ class ApiService {
   bool get isAuthenticated => _token != null;
 
   Future<Map<String, dynamic>> uploadCapture(
-    String base64Image, {
+    List<String> base64Images, {
     String? sessionGroupId,
   }) async {
     final url = Uri.parse('$baseUrl/captures');
@@ -64,7 +64,7 @@ class ApiService {
         'Authorization': 'Bearer $_token',
       },
       body: jsonEncode({
-        'imageBase64': base64Image,
+        'imagesBase64': base64Images,
         'mimeType': 'image/jpeg',
         if (sessionGroupId != null) 'sessionGroupId': sessionGroupId,
       }),

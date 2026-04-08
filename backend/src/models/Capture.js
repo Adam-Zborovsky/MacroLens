@@ -11,8 +11,8 @@ const CaptureSchema = new Schema(
     },
     mimeType: { type: String, default: 'image/jpeg' },
     
-    // Physical path on disk (Docker Volume)
-    localPath: { type: String, default: null },
+    // Physical paths on disk (Docker Volume)
+    localPaths: [{ type: String }],
 
     analysisStatus: {
       type: String,

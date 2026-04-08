@@ -11,10 +11,12 @@ import 'package:macro_lens_mobile/core/theme/app_theme.dart';
 import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/features/detective_refinement/screens/refinement_modal.dart';
+import 'package:macro_lens_mobile/features/detective_refinement/screens/meal_review_screen.dart';
 import 'package:macro_lens_mobile/features/nutrition_dashboard/screens/dashboard_screen.dart';
 import 'package:macro_lens_mobile/features/manual_entry/screens/manual_entry_screen.dart';
 import 'package:macro_lens_mobile/features/meal_history/screens/meal_history_screen.dart';
 import 'package:macro_lens_mobile/features/camera_vision/screens/barcode_scanner_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CameraHomeScreen extends StatefulWidget {
   const CameraHomeScreen({super.key});
@@ -28,7 +30,9 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   List<CameraDescription>? _cameras;
   bool _isInitialized = false;
   bool _isScanning = false;
+  bool _isMultiAngleMode = false;
   XFile? _capturedImage;
+  final List<XFile> _multiAngleImages = [];
   FlashMode _flashMode = FlashMode.off;
   final ApiService _apiService = ApiService();
   
@@ -150,26 +154,66 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       // 1. Trigger Flash Animation
       _flashController.forward(from: 0.0);
 
-      // 2. Capture and Freeze
+      // 2. Capture
       final image = await _controller!.takePicture();
       
+      if (_isMultiAngleMode) {
+        setState(() {
+          _multiAngleImages.add(image);
+        });
+        // Save locally in background
+        if (!kIsWeb) _saveImageLocally(image);
+      } else {
+        _processImages([image]);
+      }
+    } catch (e) {
+      if (mounted) _showDiagnosticError(e.toString());
+    }
+  }
+
+  void _onPickFromGallery() async {
+    if (_isScanning) return;
+    
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+      
+      if (image != null) {
+        if (_isMultiAngleMode) {
+          setState(() {
+            _multiAngleImages.add(image);
+          });
+        } else {
+          _processImages([image]);
+        }
+      }
+    } catch (e) {
+      if (mounted) _showDiagnosticError(e.toString());
+    }
+  }
+
+  void _processImages(List<XFile> images) async {
+    try {
       setState(() {
-        _capturedImage = image;
         _isScanning = true;
+        if (!_isMultiAngleMode) _capturedImage = images.first;
       });
 
-      // 3. Save Locally (skipped on web)
-      if (!kIsWeb) {
-        final localPath = await _saveImageLocally(image);
+      // 1. Save Locally (skipped on web)
+      if (!kIsWeb && !_isMultiAngleMode) {
+        final localPath = await _saveImageLocally(images.first);
         if (localPath != null) debugPrint("SPECIMEN_SAVED_AT: $localPath");
       }
 
-      // 4. Convert to Base64 for API
-      final bytes = await image.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      // 2. Convert to Base64 for API
+      List<String> base64Images = [];
+      for (var img in images) {
+        final bytes = await img.readAsBytes();
+        base64Images.add(base64Encode(bytes));
+      }
 
-      // 5. Upload to Backend (Analysis only, not saved yet)
-      final response = await _apiService.uploadCapture(base64Image);
+      // 3. Upload to Backend (Analysis only, not saved yet)
+      final response = await _apiService.uploadCapture(base64Images);
       
       // response['caseFile'] is now transient meal data
       final transientMeal = Meal.fromJson(response['caseFile']);
@@ -180,39 +224,25 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       setState(() {
         _isScanning = false;
         _capturedImage = null; // Unfreeze UI
+        _multiAngleImages.clear();
       });
 
-      // 6. Show Refinement Modal
+      // 4. Navigate to Meal Review Screen
       if (transientMeal.detectedItems.isNotEmpty) {
-        RefinementModal.show(
+        Navigator.push(
           context,
-          item: transientMeal.detectedItems[0],
-          alternatives: transientMeal.detectedItems[0].alternativeCandidates,
-          onSave: (updatedItem) async {
-            HapticFeedback.lightImpact();
-            try {
-              // Update the item in the transient meal
-              transientMeal.detectedItems[0] = updatedItem;
-              // Recalculate totals (simple for 1 item, but good practice)
-              // Actually we can just send the whole transientMeal to confirm
-              final mealData = transientMeal.toJson();
-              mealData['captureId'] = captureId;
-              
-              await _apiService.confirmMeal(mealData);
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("MEAL_LOGGED_SUCCESSFULLY", style: GoogleFonts.firaCode(fontSize: 10)),
-                    backgroundColor: AppTheme.primaryContainer,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) _showDiagnosticError(e.toString());
-            }
-          },
+          MaterialPageRoute(
+            builder: (context) => MealReviewScreen(
+              initialMeal: transientMeal,
+              captureId: captureId,
+            ),
+          ),
         );
+      } else {
+        // Handle case where no food is detected
+        if (mounted) {
+           _showDiagnosticError("ERR_NO_FOOD_DETECTED");
+        }
       }
 
     } catch (e) {
@@ -279,7 +309,11 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           // 3. Scanning Animation Overlay (Laser Sweep)
           if (_isScanning) IgnorePointer(child: _buildScanningOverlay()),
 
-          // 4. Minimalist UI Overlays
+          // 4. Multi-Angle Thumbnails
+          if (_isMultiAngleMode && _multiAngleImages.isNotEmpty && !_isScanning)
+            _buildMultiAngleThumbnails(),
+
+          // 5. Minimalist UI Overlays
           _buildMinimalistUI(),
 
           // 5. Shutter Flash Effect
@@ -317,6 +351,17 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                   },
                 ),
                 _MinimalIconButton(
+                  icon: _isMultiAngleMode ? Icons.layers_rounded : Icons.layers_outlined,
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _isMultiAngleMode = !_isMultiAngleMode;
+                      if (!_isMultiAngleMode) _multiAngleImages.clear();
+                    });
+                  },
+                  label: "MULTI",
+                ),
+                _MinimalIconButton(
                   icon: Icons.qr_code_scanner_rounded,
                   onPressed: () async {
                     if (_controller != null && _controller!.value.isStreamingImages) {
@@ -342,6 +387,10 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                     // Restart camera when coming back
                     _initializeCamera();
                   },
+                ),
+                _MinimalIconButton(
+                  icon: Icons.photo_library_rounded,
+                  onPressed: _onPickFromGallery,
                 ),
                 _MinimalIconButton(
                   icon: Icons.history_rounded,
@@ -413,6 +462,71 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
             ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
             : null,
         ),
+      ),
+    );
+  }
+
+  Widget _buildMultiAngleThumbnails() {
+    return Positioned(
+      bottom: 120,
+      left: 0,
+      right: 0,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 80,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              itemCount: _multiAngleImages.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: kIsWeb
+                            ? Image.network(_multiAngleImages[index].path, width: 80, height: 80, fit: BoxFit.cover)
+                            : Image.file(File(_multiAngleImages[index].path), width: 80, height: 80, fit: BoxFit.cover),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _multiAngleImages.removeAt(index);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                            child: const Icon(Icons.close, color: Colors.white, size: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _processImages(_multiAngleImages),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            ),
+            child: Text(
+              "ANALYZE_${_multiAngleImages.length}_ANGLES",
+              style: GoogleFonts.firaCode(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -48,6 +48,24 @@ class Meal {
       notes: json['notes'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) '_id': id,
+      'userId': userId,
+      if (captureId != null) 'captureId': captureId,
+      'caseFileId': caseFileId,
+      'mealType': mealType,
+      'loggedAt': loggedAt.toIso8601String(),
+      'overallConfidence': overallConfidence,
+      'detectedItems': detectedItems.map((i) => i.toJson()).toList(),
+      'mealTotals': mealTotals.toJson(),
+      'volumetricAnchors': volumetricAnchors.toJson(),
+      'entryMethod': entryMethod,
+      'nutritionDataVerified': nutritionDataVerified,
+      if (notes != null) 'notes': notes,
+    };
+  }
 }
 
 class DetectedItem {
@@ -104,6 +122,27 @@ class DetectedItem {
       verificationStatus: json['verificationStatus'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'itemId': itemId,
+      'name': name,
+      'usdaSearchTerm': usdaSearchTerm,
+      if (usdaFoodId != null) 'usdaFoodId': usdaFoodId,
+      'boundingBox2D': boundingBox2D,
+      'massGrams': massGrams,
+      if (userAdjustedMassGrams != null)
+        'userAdjustedMassGrams': userAdjustedMassGrams,
+      'compositionConfidence': compositionConfidence,
+      'preparationState': preparationState,
+      'cookingMethod': cookingMethod,
+      'nutritionPer100g': nutritionPer100g.toJson(),
+      'nutritionTotal': nutritionTotal.toJson(),
+      'alternativeCandidates':
+          alternativeCandidates.map((i) => i.toJson()).toList(),
+      'verificationStatus': verificationStatus,
+    };
+  }
 }
 
 class NutritionProfile {
@@ -130,6 +169,16 @@ class NutritionProfile {
       fiberGrams: (json['fiberGrams'] as num?)?.toDouble() ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'calories': calories,
+      'proteinGrams': proteinGrams,
+      'carbohydratesGrams': carbohydratesGrams,
+      'fatGrams': fatGrams,
+      'fiberGrams': fiberGrams,
+    };
+  }
 }
 
 class AlternativeCandidate {
@@ -149,6 +198,14 @@ class AlternativeCandidate {
       usdaSearchTerm: json['usdaSearchTerm'],
       nutritionPer100g: NutritionProfile.fromJson(json['nutritionPer100g']),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'usdaSearchTerm': usdaSearchTerm,
+      'nutritionPer100g': nutritionPer100g.toJson(),
+    };
   }
 }
 
@@ -170,5 +227,15 @@ class VolumetricAnchors {
       anchorObjectDetected: json['anchorObjectDetected'],
       calibrationMethod: json['calibrationMethod'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (estimatedPlateDiameterCm != null)
+        'estimatedPlateDiameterCm': estimatedPlateDiameterCm,
+      if (anchorObjectDetected != null)
+        'anchorObjectDetected': anchorObjectDetected,
+      'calibrationMethod': calibrationMethod,
+    };
   }
 }

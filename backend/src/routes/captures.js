@@ -13,8 +13,9 @@ router.use(verifyToken);
 const analyzer = new AnalyzerService();
 
 const CaptureCreateSchema = z.object({
-  imageBase64: z.string(),
-  mimeType:    z.string().optional(),
+  imageBase64:  z.string().optional(),
+  imagesBase64: z.array(z.string()).optional(),
+  mimeType:     z.string().optional(),
   sessionGroupId: z.string().optional(),
 });
 
@@ -23,17 +24,26 @@ const CaptureCreateSchema = z.object({
 router.post('/', async (req, res, next) => {
   try {
     const userId = req.userId;
-    const { imageBase64, mimeType, sessionGroupId } = CaptureCreateSchema.parse(req.body);
+    const { imageBase64, imagesBase64, mimeType, sessionGroupId } = CaptureCreateSchema.parse(req.body);
+
+    const imagesToProcess = imagesBase64 || (imageBase64 ? [imageBase64] : []);
+    if (imagesToProcess.length === 0) {
+      return res.status(400).json({ error: { message: 'No images provided' } });
+    }
 
     // 1. Create directory for Docker volume if it doesn't exist
     const uploadDir = path.join(__dirname, '../../uploads');
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // 2. Generate unique filename and save to disk
-    const fileName = `specimen_${Date.now()}_${userId.toString().substring(0, 5)}.jpg`;
-    const filePath = path.join(uploadDir, fileName);
-    const imageBuffer = Buffer.from(imageBase64, 'base64');
-    await fs.writeFile(filePath, imageBuffer);
+    // 2. Save each image to disk
+    const localPaths = [];
+    for (const [idx, base64Data] of imagesToProcess.entries()) {
+      const fileName = `specimen_${Date.now()}_${userId.toString().substring(0, 5)}_${idx}.jpg`;
+      const filePath = path.join(uploadDir, fileName);
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      await fs.writeFile(filePath, imageBuffer);
+      localPaths.push(`uploads/${fileName}`);
+    }
 
     // 3. Create database record
     const capture = await Capture.create({
@@ -41,19 +51,18 @@ router.post('/', async (req, res, next) => {
       mimeType: mimeType || 'image/jpeg',
       analysisStatus: 'analyzing',
       sessionGroupId,
-      localPath: `uploads/${fileName}`,
+      localPaths,
     });
 
     // 4. Run AI analysis
     try {
-      console.log(`[ANALYSIS] Starting analysis for user ${userId} and capture ${capture._id}`);
-      const geminiData = await analyzer.analyzeCapture(imageBase64, mimeType);
+      console.log(`[ANALYSIS] Starting analysis for user ${userId} and capture ${capture._id} (Count: ${imagesToProcess.length})`);
+      const geminiData = await analyzer.analyzeCapture(imagesToProcess, mimeType);
       
       console.log(`[ANALYSIS] Gemini data received. Mapping to schema (transient)...`);
       const mealData = AnalyzerService.mapToMealSchema(geminiData, userId, capture._id);
       
       capture.analysisStatus = 'completed';
-      // We don't have a resultMealId yet since it's not saved to the DB
       await capture.save();
 
       console.log(`[ANALYSIS] Capture ${capture._id} analyzed. Returning data for confirmation.`);

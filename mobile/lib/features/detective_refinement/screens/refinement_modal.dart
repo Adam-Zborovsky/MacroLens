@@ -8,18 +8,21 @@ class RefinementModal extends StatefulWidget {
   final DetectedItem item;
   final List<AlternativeCandidate> alternatives;
   final Function(DetectedItem updatedItem) onSave;
+  final VoidCallback onDelete;
 
   const RefinementModal({
     super.key,
     required this.item,
     required this.alternatives,
     required this.onSave,
+    required this.onDelete,
   });
 
   static void show(BuildContext context, {
     required DetectedItem item,
     required List<AlternativeCandidate> alternatives,
     required Function(DetectedItem) onSave,
+    required VoidCallback onDelete,
   }) {
     showModalBottomSheet(
       context: context,
@@ -29,6 +32,7 @@ class RefinementModal extends StatefulWidget {
         item: item,
         alternatives: alternatives,
         onSave: onSave,
+        onDelete: onDelete,
       ),
     );
   }
@@ -179,10 +183,22 @@ class _RefinementModalState extends State<RefinementModal> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text("SAVE_MEAL"),
+                  child: const Text("SAVE_CHANGES"),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () {
+                widget.onDelete();
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: Text("DELETE_SPECIMEN", style: GoogleFonts.firaCode(fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
           ),
           const SizedBox(height: 16),
         ],
