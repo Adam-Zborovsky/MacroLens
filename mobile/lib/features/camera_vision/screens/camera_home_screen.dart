@@ -16,6 +16,9 @@ import 'package:macro_lens_mobile/features/nutrition_dashboard/screens/dashboard
 import 'package:macro_lens_mobile/features/manual_entry/screens/manual_entry_screen.dart';
 import 'package:macro_lens_mobile/features/meal_history/screens/meal_history_screen.dart';
 import 'package:macro_lens_mobile/features/camera_vision/screens/barcode_scanner_screen.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_service.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CameraHomeScreen extends StatefulWidget {
@@ -38,12 +41,14 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   
   late AnimationController _flashController;
   late Animation<double> _flashAnimation;
+  bool _tutorialScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
     if (!kIsWeb) _cleanupOldCaptures();
+    _checkTutorial();
     
     _flashController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -53,6 +58,44 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 70),
     ]).animate(_flashController);
+  }
+
+  Future<void> _checkTutorial() async {
+    if (_tutorialScheduled) return;
+    try {
+      final user = await _apiService.fetchCurrentUser();
+      // We use a different flag or check if dashboard tutorial is done
+      // For simplicity, let's assume camera tutorial is part of the same "hasSeenTutorial"
+      // But we only show it here if they've seen the dashboard one? 
+      // Actually, let's just show it if they haven't seen tutorial yet.
+      final bool hasSeenTutorial = user['hasSeenTutorial'] ?? false;
+      
+      if (!hasSeenTutorial && mounted) {
+        _tutorialScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTutorial();
+        });
+      }
+    } catch (e) {
+      debugPrint("ERR_CHECK_TUTORIAL: $e");
+    }
+  }
+
+  void _showTutorial() {
+    final tutorial = TutorialService.createTutorial(
+      context: context,
+      targets: TutorialService.getCameraTargets(),
+      onFinish: () async {
+        try {
+          // Marking as seen only if they finish the whole flow might be better
+          // but for now let's just mark it.
+          await _apiService.updateProfile({'hasSeenTutorial': true});
+        } catch (e) {
+          debugPrint("ERR_UPDATE_TUTORIAL_STATUS: $e");
+        }
+      },
+    );
+    tutorial.show(context: context);
   }
 
   Future<void> _cleanupOldCaptures() async {
@@ -389,10 +432,12 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                   },
                 ),
                 _MinimalIconButton(
+                  key: TutorialKeys.cameraGallery,
                   icon: Icons.photo_library_rounded,
                   onPressed: _onPickFromGallery,
                 ),
                 _MinimalIconButton(
+                  key: TutorialKeys.cameraHistory,
                   icon: Icons.history_rounded,
                   onPressed: () => Navigator.push(
                     context,
@@ -408,6 +453,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _MinimalIconButton(
+                  key: TutorialKeys.cameraHome,
                   icon: Icons.dashboard_outlined,
                   onPressed: () => Navigator.push(
                     context,
@@ -416,8 +462,9 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                   label: "HOME",
                 ),
                 // Modern Shutter Button
-                _buildModernShutter(),
+                _buildModernShutter(key: TutorialKeys.cameraShutter),
                 _MinimalIconButton(
+                  key: TutorialKeys.cameraManual,
                   icon: Icons.edit_note_rounded,
                   onPressed: () => Navigator.push(
                     context,
@@ -433,8 +480,9 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildModernShutter() {
+  Widget _buildModernShutter({Key? key}) {
     return GestureDetector(
+      key: key,
       onTap: _onCapture,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -622,6 +670,7 @@ class _MinimalIconButton extends StatelessWidget {
   final String? label;
 
   const _MinimalIconButton({
+    super.key,
     required this.icon,
     required this.onPressed,
     this.label,

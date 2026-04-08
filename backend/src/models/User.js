@@ -74,6 +74,8 @@ const UserSchema = new Schema(
     },
 
     isOnboarded: { type: Boolean, default: false },
+
+    hasSeenTutorial: { type: Boolean, default: false },
   },
   {
     timestamps: true,

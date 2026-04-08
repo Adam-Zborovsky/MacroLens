@@ -210,6 +210,27 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> profile) async {
+    final url = Uri.parse('$baseUrl/users/me');
+
+    final response = await http.patch(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode(profile),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(
+        jsonDecode(response.body)['error']?['message'] ?? 'Failed to update profile',
+      );
+    }
+  }
+
   // Preset Methods
   Future<List<Preset>> fetchPresets() async {
     final url = Uri.parse('$baseUrl/presets');

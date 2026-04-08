@@ -3,8 +3,12 @@ import 'package:macro_lens_mobile/core/theme/app_theme.dart';
 import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/features/goal_engine/screens/goals_screen.dart';
+import 'package:macro_lens_mobile/features/auth/screens/profile_screen.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,11 +20,45 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Meal>> _dataFuture;
+  bool _tutorialScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _dataFuture = _apiService.fetchMeals();
+    _checkTutorial();
+  }
+
+  Future<void> _checkTutorial() async {
+    if (_tutorialScheduled) return;
+    try {
+      final user = await _apiService.fetchCurrentUser();
+      final bool hasSeenTutorial = user['hasSeenTutorial'] ?? false;
+      
+      if (!hasSeenTutorial && mounted) {
+        _tutorialScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTutorial();
+        });
+      }
+    } catch (e) {
+      debugPrint("ERR_CHECK_TUTORIAL: $e");
+    }
+  }
+
+  void _showTutorial() {
+    final tutorial = TutorialService.createTutorial(
+      context: context,
+      targets: TutorialService.getDashboardTargets(),
+      onFinish: () async {
+        try {
+          await _apiService.updateProfile({'hasSeenTutorial': true});
+        } catch (e) {
+          debugPrint("ERR_UPDATE_TUTORIAL_STATUS: $e");
+        }
+      },
+    );
+    tutorial.show(context: context);
   }
 
   @override
@@ -58,11 +96,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 32),
-                  _buildEnergyReadout(totalCals, 2500), // Hardcoded target for now
+                  _buildEnergyReadout(totalCals, 2500, key: TutorialKeys.dashboardCalories), // Hardcoded target for now
                   const SizedBox(height: 32),
-                  _buildMacroRings(totalP, totalC, totalF),
+                  _buildMacroRings(totalP, totalC, totalF, key: TutorialKeys.dashboardMacros),
                   const SizedBox(height: 48),
-                  _buildTimelineSection(todaysMeals),
+                  _buildTimelineSection(todaysMeals, key: TutorialKeys.dashboardTimeline),
                   const SizedBox(height: 32),
                   _buildHydrationTracker(),
                 ],
@@ -89,19 +127,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text("DAILY_SUMMARY", style: AppTheme.darkTheme.textTheme.headlineMedium),
           ],
         ),
-        IconButton(
-          icon: const Icon(Icons.tune_rounded, color: AppTheme.secondary),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GoalsScreen())),
+        Row(
+          children: [
+            IconButton(
+              key: TutorialKeys.dashboardTune,
+              icon: const Icon(Icons.tune_rounded, color: AppTheme.secondary),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GoalsScreen())),
+            ),
+            IconButton(
+              key: TutorialKeys.dashboardProfile,
+              icon: const Icon(Icons.person_outline_rounded, color: AppTheme.secondary),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildEnergyReadout(double current, double target) {
+  Widget _buildEnergyReadout(double current, double target, {Key? key}) {
     final remaining = target - current;
     final percent = (current / target).clamp(0.0, 1.0);
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLow,
@@ -152,8 +201,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMacroRings(double p, double c, double f) {
+  Widget _buildMacroRings(double p, double c, double f, {Key? key}) {
     return Row(
+      key: key,
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _MacroRing(label: "PROTEIN", current: p, target: 180, color: AppTheme.primary),
@@ -163,8 +213,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTimelineSection(List<Meal> meals) {
+  Widget _buildTimelineSection(List<Meal> meals, {Key? key}) {
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(

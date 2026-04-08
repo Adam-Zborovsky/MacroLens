@@ -65,6 +65,13 @@ const MetricsPatchSchema = z.object({
     .optional(),
 });
 
+const ProfilePatchSchema = z.object({
+  displayName:     z.string().min(1).optional(),
+  email:           z.string().email().optional(),
+  password:        z.string().min(6).optional(),
+  hasSeenTutorial: z.boolean().optional(),
+});
+
 // ─── GET /api/v1/users/me ─────────────────────────────────────────────────────
 
 router.get('/me', async (req, res, next) => {
@@ -75,6 +82,33 @@ router.get('/me', async (req, res, next) => {
       return res.status(404).json({ error: { code: 'ERR_USER_NOT_FOUND', message: 'User not found.' } });
     }
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── PATCH /api/v1/users/me ───────────────────────────────────────────────────
+
+router.patch('/me', async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const body = ProfilePatchSchema.parse(req.body);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: { code: 'ERR_USER_NOT_FOUND', message: 'User profile not found.' } });
+    }
+
+    if (body.displayName)     user.displayName = body.displayName;
+    if (body.email)           user.email = body.email;
+    if (body.password)        user.password = body.password;
+    if (body.hasSeenTutorial !== undefined) user.hasSeenTutorial = body.hasSeenTutorial;
+
+    await user.save();
+
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
+    res.json(updatedUser);
   } catch (err) {
     next(err);
   }
