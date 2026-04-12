@@ -4,8 +4,8 @@ import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/features/goal_engine/screens/goals_screen.dart';
 import 'package:macro_lens_mobile/features/auth/screens/profile_screen.dart';
-import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
-import 'package:macro_lens_mobile/features/auth/tutorial_service.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_provider.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_wrapper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -20,53 +20,21 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Meal>> _dataFuture;
-  bool _tutorialScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _dataFuture = _apiService.fetchMeals();
-    _checkTutorial();
-  }
-
-  Future<void> _checkTutorial() async {
-    if (_tutorialScheduled) return;
-    try {
-      final user = await _apiService.fetchCurrentUser();
-      final bool hasSeenTutorial = user['hasSeenTutorial'] ?? false;
-      
-      if (!hasSeenTutorial && mounted) {
-        _tutorialScheduled = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showTutorial();
-        });
-      }
-    } catch (e) {
-      debugPrint("ERR_CHECK_TUTORIAL: $e");
-    }
-  }
-
-  void _showTutorial() {
-    final tutorial = TutorialService.createTutorial(
-      context: context,
-      targets: TutorialService.getDashboardTargets(),
-      onFinish: () async {
-        try {
-          await _apiService.updateProfile({'hasSeenTutorial': true});
-        } catch (e) {
-          debugPrint("ERR_UPDATE_TUTORIAL_STATUS: $e");
-        }
-      },
-    );
-    tutorial.show(context: context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: FutureBuilder<List<Meal>>(
+      body: TutorialWrapper(
+        step: TutorialStep.dashboard,
+        child: SafeArea(
+          child: FutureBuilder<List<Meal>>(
           future: _dataFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {

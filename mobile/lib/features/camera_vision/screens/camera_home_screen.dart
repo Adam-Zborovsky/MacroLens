@@ -40,14 +40,12 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   
   late AnimationController _flashController;
   late Animation<double> _flashAnimation;
-  bool _tutorialScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
     if (!kIsWeb) _cleanupOldCaptures();
-    _checkTutorial();
     
     _flashController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -57,44 +55,6 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 70),
     ]).animate(_flashController);
-  }
-
-  Future<void> _checkTutorial() async {
-    if (_tutorialScheduled) return;
-    try {
-      final user = await _apiService.fetchCurrentUser();
-      // We use a different flag or check if dashboard tutorial is done
-      // For simplicity, let's assume camera tutorial is part of the same "hasSeenTutorial"
-      // But we only show it here if they've seen the dashboard one? 
-      // Actually, let's just show it if they haven't seen tutorial yet.
-      final bool hasSeenTutorial = user['hasSeenTutorial'] ?? false;
-      
-      if (!hasSeenTutorial && mounted) {
-        _tutorialScheduled = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showTutorial();
-        });
-      }
-    } catch (e) {
-      debugPrint("ERR_CHECK_TUTORIAL: $e");
-    }
-  }
-
-  void _showTutorial() {
-    final tutorial = TutorialService.createTutorial(
-      context: context,
-      targets: TutorialService.getCameraTargets(),
-      onFinish: () async {
-        try {
-          // Marking as seen only if they finish the whole flow might be better
-          // but for now let's just mark it.
-          await _apiService.updateProfile({'hasSeenTutorial': true});
-        } catch (e) {
-          debugPrint("ERR_UPDATE_TUTORIAL_STATUS: $e");
-        }
-      },
-    );
-    tutorial.show(context: context);
   }
 
   Future<void> _cleanupOldCaptures() async {
@@ -334,9 +294,11 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
+      body: TutorialWrapper(
+        step: TutorialStep.camera,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           // 1. Camera Viewfinder (or Frozen Image)
           if (_capturedImage != null)
             kIsWeb 
