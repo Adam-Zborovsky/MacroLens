@@ -6,6 +6,9 @@ Built with **Gemini 2.5 Flash**, MacroLens treats nutrition tracking as a forens
 
 ---
 
+## Live On: https://macrolens.adamzborovsky.com
+
+
 ## 🎯 Core Conviction
 Consistency in performance nutrition should be solved by machines, not by manual data entry. Tracking should be as instant as the first bite.
 
