@@ -1,3 +1,15 @@
 node_modules/
-#.env
+.env
+backend/.env
 *.log
+.DS_Store
+Thumbs.db
+
+# Flutter
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/ios/Pods/
+mobile/android/.gradle/
