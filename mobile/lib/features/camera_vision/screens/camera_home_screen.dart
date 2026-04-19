@@ -10,7 +10,6 @@ import 'package:path/path.dart' as p;
 import 'package:macro_lens_mobile/core/theme/app_theme.dart';
 import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/core/models/meal.dart';
-import 'package:macro_lens_mobile/features/detective_refinement/screens/refinement_modal.dart';
 import 'package:macro_lens_mobile/features/detective_refinement/screens/meal_review_screen.dart';
 import 'package:macro_lens_mobile/features/nutrition_dashboard/screens/dashboard_screen.dart';
 import 'package:macro_lens_mobile/features/manual_entry/screens/manual_entry_screen.dart';
@@ -18,7 +17,6 @@ import 'package:macro_lens_mobile/features/meal_history/screens/meal_history_scr
 import 'package:macro_lens_mobile/features/camera_vision/screens/barcode_scanner_screen.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_service.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CameraHomeScreen extends StatefulWidget {
@@ -34,6 +32,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   bool _isInitialized = false;
   bool _isScanning = false;
   bool _isMultiAngleMode = false;
+  bool _isShutterPressed = false;
   XFile? _capturedImage;
   final List<XFile> _multiAngleImages = [];
   FlashMode _flashMode = FlashMode.off;
@@ -41,14 +40,12 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   
   late AnimationController _flashController;
   late Animation<double> _flashAnimation;
-  bool _tutorialScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
     if (!kIsWeb) _cleanupOldCaptures();
-    _checkTutorial();
     
     _flashController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -58,44 +55,6 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 70),
     ]).animate(_flashController);
-  }
-
-  Future<void> _checkTutorial() async {
-    if (_tutorialScheduled) return;
-    try {
-      final user = await _apiService.fetchCurrentUser();
-      // We use a different flag or check if dashboard tutorial is done
-      // For simplicity, let's assume camera tutorial is part of the same "hasSeenTutorial"
-      // But we only show it here if they've seen the dashboard one? 
-      // Actually, let's just show it if they haven't seen tutorial yet.
-      final bool hasSeenTutorial = user['hasSeenTutorial'] ?? false;
-      
-      if (!hasSeenTutorial && mounted) {
-        _tutorialScheduled = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showTutorial();
-        });
-      }
-    } catch (e) {
-      debugPrint("ERR_CHECK_TUTORIAL: $e");
-    }
-  }
-
-  void _showTutorial() {
-    final tutorial = TutorialService.createTutorial(
-      context: context,
-      targets: TutorialService.getCameraTargets(),
-      onFinish: () async {
-        try {
-          // Marking as seen only if they finish the whole flow might be better
-          // but for now let's just mark it.
-          await _apiService.updateProfile({'hasSeenTutorial': true});
-        } catch (e) {
-          debugPrint("ERR_UPDATE_TUTORIAL_STATUS: $e");
-        }
-      },
-    );
-    tutorial.show(context: context);
   }
 
   Future<void> _cleanupOldCaptures() async {
@@ -335,9 +294,11 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
+      body: TutorialWrapper(
+        step: TutorialStep.camera,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           // 1. Camera Viewfinder (or Frozen Image)
           if (_capturedImage != null)
             kIsWeb 
@@ -380,8 +341,11 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
             // Top Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _MinimalIconButton(
+                  isActive: _flashMode == FlashMode.torch,
+                  label: "FLASH",
                   icon: _flashMode == FlashMode.torch ? Icons.flash_on_rounded : Icons.flash_off_rounded,
                   onPressed: () async {
                     if (_controller == null) return;
@@ -394,6 +358,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                   },
                 ),
                 _MinimalIconButton(
+                  isActive: _isMultiAngleMode,
                   icon: _isMultiAngleMode ? Icons.layers_rounded : Icons.layers_outlined,
                   onPressed: () {
                     HapticFeedback.selectionClick();
@@ -405,39 +370,35 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                   label: "MULTI",
                 ),
                 _MinimalIconButton(
+                  label: "SCAN",
                   icon: Icons.qr_code_scanner_rounded,
                   onPressed: () async {
                     if (_controller != null && _controller!.value.isStreamingImages) {
                       await _controller!.stopImageStream();
                     }
-                    // For web/mobile, it's safer to dispose or just stop preview
-                    // But stopping and restarting the controller is most reliable
                     await _controller?.dispose();
                     setState(() {
                       _isInitialized = false;
                       _controller = null;
                     });
-
-                    // Small delay to ensure hardware is released
                     await Future.delayed(const Duration(milliseconds: 300));
-
                     if (!mounted) return;
                     await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
                     );
-                    
-                    // Restart camera when coming back
                     _initializeCamera();
                   },
                 ),
                 _MinimalIconButton(
                   key: TutorialKeys.cameraGallery,
+                  label: "GALLERY",
                   icon: Icons.photo_library_rounded,
                   onPressed: _onPickFromGallery,
                 ),
                 _MinimalIconButton(
                   key: TutorialKeys.cameraHistory,
+                  label: "HISTORY",
                   icon: Icons.history_rounded,
                   onPressed: () => Navigator.push(
                     context,
@@ -483,32 +444,44 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
   Widget _buildModernShutter({Key? key}) {
     return GestureDetector(
       key: key,
+      onTapDown: (_) => setState(() => _isShutterPressed = true),
+      onTapUp: (_) => setState(() => _isShutterPressed = false),
+      onTapCancel: () => setState(() => _isShutterPressed = false),
       onTap: _onCapture,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 100),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-        ),
-        child: Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: _isScanning ? Colors.white.withOpacity(0.2) : Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              if (!_isScanning)
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.3),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                ),
-            ],
+          border: Border.all(
+            color: _isShutterPressed ? AppTheme.primary : Colors.white.withOpacity(0.5), 
+            width: _isShutterPressed ? 4 : 2,
           ),
-          child: _isScanning 
-            ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
-            : null,
+        ),
+        child: AnimatedScale(
+          scale: _isShutterPressed ? 0.9 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: _isScanning 
+                  ? Colors.white.withOpacity(0.2) 
+                  : (_isShutterPressed ? AppTheme.primary : Colors.white),
+              shape: BoxShape.circle,
+              boxShadow: [
+                if (!_isScanning)
+                  BoxShadow(
+                    color: (_isShutterPressed ? AppTheme.primary : Colors.white).withOpacity(0.3),
+                    blurRadius: _isShutterPressed ? 25 : 15,
+                    spreadRadius: _isShutterPressed ? 5 : 2,
+                  ),
+              ],
+            ),
+            child: _isScanning 
+              ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
+              : null,
+          ),
         ),
       ),
     );
@@ -543,13 +516,18 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
                         right: 4,
                         child: GestureDetector(
                           onTap: () {
+                            HapticFeedback.lightImpact();
                             setState(() {
                               _multiAngleImages.removeAt(index);
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7), 
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24),
+                            ),
                             child: const Icon(Icons.close, color: Colors.white, size: 14),
                           ),
                         ),
@@ -562,16 +540,25 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => _processImages(_multiAngleImages),
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              _processImages(_multiAngleImages);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              elevation: 8,
+              shadowColor: AppTheme.primary.withOpacity(0.5),
             ),
             child: Text(
               "ANALYZE_${_multiAngleImages.length}_ANGLES",
-              style: GoogleFonts.firaCode(fontWeight: FontWeight.bold, fontSize: 12),
+              style: GoogleFonts.firaCode(
+                fontWeight: FontWeight.bold, 
+                fontSize: 14,
+                letterSpacing: 1.5,
+              ),
             ),
           ),
         ],
@@ -668,12 +655,14 @@ class _MinimalIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final String? label;
+  final bool isActive;
 
   const _MinimalIconButton({
     super.key,
     required this.icon,
     required this.onPressed,
     this.label,
+    this.isActive = false,
   });
 
   @override
@@ -682,20 +671,37 @@ class _MinimalIconButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon, color: Colors.white, size: 28),
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
+          icon: Icon(
+            icon, 
+            color: isActive ? AppTheme.primary : Colors.white, 
+            size: 26
+          ),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            onPressed();
+          },
+          padding: const EdgeInsets.all(8),
           constraints: const BoxConstraints(),
+          style: IconButton.styleFrom(
+            backgroundColor: isActive ? AppTheme.primary.withOpacity(0.15) : Colors.black26,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero, // Keep forensic look
+              side: BorderSide(
+                color: isActive ? AppTheme.primary.withOpacity(0.5) : Colors.white10,
+                width: 1,
+              ),
+            ),
+          ),
         ),
         if (label != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             label!,
             style: GoogleFonts.firaCode(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 1,
+              color: isActive ? AppTheme.primary : Colors.white.withOpacity(0.6),
+              fontSize: 8,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              letterSpacing: 0.5,
             ),
           ),
         ],

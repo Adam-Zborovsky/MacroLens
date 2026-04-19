@@ -57,6 +57,13 @@ class TutorialService {
         title: "CHANGE_GOALS",
         description: "Set your daily calorie and macro targets here. Update them as you progress.",
       ),
+      _createTarget(
+        identify: "NextCamera",
+        key: TutorialKeys.dashboardProfile, // Repurposing profile icon as a "guide" to next screen
+        title: "UP_NEXT: OPTICAL_SCANNER",
+        description: "Tap the profile icon to see your settings, or go back to the scanner to log your first meal. The tutorial continues there.",
+        isGuide: true,
+      ),
     ];
   }
 
@@ -89,8 +96,9 @@ class TutorialService {
       _createTarget(
         identify: "Home",
         key: TutorialKeys.cameraHome,
-        title: "DASHBOARD",
-        description: "Go back to the main screen to see your daily summary and progress.",
+        title: "UP_NEXT: DASHBOARD",
+        description: "Go back to the main screen to see your daily summary and progress. Your setup is now complete.",
+        isGuide: true,
       ),
     ];
   }
@@ -101,6 +109,7 @@ class TutorialService {
     required String title,
     required String description,
     ContentAlign align = ContentAlign.bottom,
+    bool isGuide = false,
   }) {
     return TargetFocus(
       identify: identify,
@@ -117,7 +126,7 @@ class TutorialService {
                 Text(
                   title,
                   style: GoogleFonts.spaceGrotesk(
-                    color: AppTheme.primary,
+                    color: isGuide ? Colors.orangeAccent : AppTheme.primary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2,
@@ -131,6 +140,18 @@ class TutorialService {
                     fontSize: 12,
                   ),
                 ),
+                if (isGuide) ...[
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: controller.next,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                      foregroundColor: Colors.black,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
+                    child: const Text("GOT_IT"),
+                  ),
+                ],
               ],
             );
           },

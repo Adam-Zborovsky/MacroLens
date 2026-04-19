@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:macro_lens_mobile/core/theme/app_theme.dart';
 import 'package:macro_lens_mobile/core/services/api_service.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
+import 'package:provider/provider.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_provider.dart';
 import 'package:macro_lens_mobile/features/auth/screens/auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -81,15 +83,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _restartTutorial() async {
     HapticFeedback.heavyImpact();
     try {
-      await _apiService.updateProfile({'hasSeenTutorial': false});
+      // Reset via Provider
+      await context.read<TutorialProvider>().resetTutorial();
+      
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("TUTORIAL_RESTARTED", style: GoogleFonts.firaCode(fontSize: 10)),
-            backgroundColor: AppTheme.primaryContainer,
-          ),
-        );
+        // Also update backend if needed, but provider already handles local state.
+        // The previous code updated backend, so let's keep it for sync.
+        await _apiService.updateProfile({'hasSeenTutorial': false});
+        
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("TUTORIAL_RESTARTED", style: GoogleFonts.firaCode(fontSize: 10)),
+              backgroundColor: AppTheme.primaryContainer,
+            ),
+          );
+        }
       }
     } catch (e) {
        if (mounted) {
