@@ -17,6 +17,8 @@ import 'package:macro_lens_mobile/features/meal_history/screens/meal_history_scr
 import 'package:macro_lens_mobile/features/camera_vision/screens/barcode_scanner_screen.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_service.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_wrapper.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CameraHomeScreen extends StatefulWidget {
@@ -328,6 +330,7 @@ class _CameraHomeScreenState extends State<CameraHomeScreen> with SingleTickerPr
             ),
           ),
         ],
+        ),
       ),
     );
   }

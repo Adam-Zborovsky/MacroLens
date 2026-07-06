@@ -6,6 +6,7 @@ import 'package:macro_lens_mobile/features/goal_engine/screens/goals_screen.dart
 import 'package:macro_lens_mobile/features/auth/screens/profile_screen.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_provider.dart';
 import 'package:macro_lens_mobile/features/auth/tutorial_wrapper.dart';
+import 'package:macro_lens_mobile/features/auth/tutorial_keys.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -75,6 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             );
           }
+        ),
         ),
       ),
     );
