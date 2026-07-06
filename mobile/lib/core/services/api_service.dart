@@ -4,7 +4,7 @@ import 'package:macro_lens_mobile/core/models/meal.dart';
 import 'package:macro_lens_mobile/core/models/preset.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1';
+  static const String baseUrl = 'http://localhost:4000/api/v1';
   // static const String baseUrl = 'http://localhost:4000/api/v1'; // Local Dev
   // static const String baseUrl = 'https://macrolens.adamzborovsky.com/api/v1'; // Production
   static final ApiService _instance = ApiService._internal();
@@ -210,7 +210,9 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> profile) async {
+  Future<Map<String, dynamic>> updateProfile(
+    Map<String, dynamic> profile,
+  ) async {
     final url = Uri.parse('$baseUrl/users/me');
 
     final response = await http.patch(
@@ -226,7 +228,8 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception(
-        jsonDecode(response.body)['error']?['message'] ?? 'Failed to update profile',
+        jsonDecode(response.body)['error']?['message'] ??
+            'Failed to update profile',
       );
     }
   }
